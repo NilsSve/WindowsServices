@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+CSI-Windows.com Commented Sample Manifest File http://csi-windows.com/toolkit
+EXISTING MANIFEST - if one is present, always use the EXISTING manifest 
+(internal or external) as your starting point.
+ASSEMBLY SECTION - this section does not have to match the actual EXE if
+there was no previous internal or external manifest with the original
+TRUSTINFO SECTION - here are the values for level
+"requireAdministrator" - prompt for administrator if not already.
+"highestAvailable" - prompt for highest token available.
+"asInvoker" - do not elevate (even if detected by setup hueristics.)
+From http://csi-windows.com/toolkit/manifest-template
+
+COMPATIBILITY SECTION - this section allows you to specify that an
+application has been designed to be compatible with certain versions
+of the operating system. Specifying these settings also disables 
+Program Compatibility Assistant (PCA) (Autoshimming by the OS).
+Administrators who have re-engineered the install of an application or
+shimmed it to make it compliant with Windows 7 can use a manifest to
+prevent the operating system from UAC virtualizing or running PCA.
+
+DATE MANIFESTED:
+FILE MANIFESTED:
+NAME MANIFESTOR:
+REASON FOR MANIFEST:
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"> 
+
+<assemblyIdentity version="1.0.0.0"
+processorArchitecture="*"
+name="OptionalApplicationName"
+type="win32"/> 
+<description>Optional description of your application</description> 
+
+<!-- COMPATIBILITY SECTION SPECIFIES IF APP IS COMPLIANT 
+DISABLES PCA IF SPECIFIED -->
+<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+<application>
+<!--The ID below indicates application support for Windows Vista -->
+<supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}"/>
+<!--The ID below indicates application support for Windows 7 -->
+<supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
+</application>
+</compatibility>
+
+<!-- TRUSTINFO SECTION SPECIFIES REQUESTED PERMISSIONS AND 
+UIPI DISABLEMENT (SPECIAL CONDITIONS APPLY TO UIPI DISABLEMENT)-->
+<trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+<security>
+<requestedPrivileges>
+<requestedExecutionLevel
+level="asInvoker"
+uiAccess="false"/>
+</requestedPrivileges>
+</security>
+</trustInfo>
+</assembly>

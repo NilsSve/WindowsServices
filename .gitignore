@@ -45,7 +45,13 @@ loginEncryptionkey.inc
 **/Data/compileheader.h
 **/Help/**/*.hnd
 **/Help/**/Assets
+**/Help/**/HTML
+**/Help/**/HTMLHelpWindowsServices
+**/Help/**/WindowsServicesHTMLHelp
 **/Help/**/Online Help
 **/HelpText**/*.*
+**/Help/**/DFProgramsStyles.hns
+**/Help/DFWinServiceManager.hnd
+
 **/Install
 **/Capture

@@ -1,0 +1,262 @@
+Use Dferror.pkg
+//************************************************************************
+// This class is a copy of DataFlex normal error handler. It has been
+// modified to Write to a logfile. The original error handler is destroyed
+// and this one is used instead.
+//************************************************************************
+Class cErrorLog is a cObject
+
+    Procedure Construct_Object
+        String sPath sProgram
+        Integer iPos
+
+        Forward Send Construct_Object
+
+        Set Delegation_Mode to No_Delegate_Or_Error
+
+        Property Boolean pbVerbose_State          True
+        Property Integer piCurrent_Error_Number     0
+        Property Integer piError_line_Number        0
+
+        // Instead of showing errors on screen, write errors to logfile:
+        // See below how this value is automatically set.
+        Property String psLogFile ""
+
+        // Should the error text that is written to the logfile be converted to ANSII?
+        Property Boolean pbToAnsi False
+
+        // Flag which is sent when error is being processed. This
+        // stops error recursion.
+        //Doc/ Interface=Private
+        Property Integer Error_Processing_State  False
+
+        //  This allows us to skip find errors (GT & LT) and to only
+        //  ring a bell when these occur.
+        //
+        //Doc/ Interface=Private
+        Property Integer Bell_on_Find_Error_State False // Not used in this class.
+
+        Object TrappedErrors is a Trapped_Errors_Array
+            Send InitArray
+        End_Object
+        Send Trap_All
+
+        Get ApplicationPath of ghoApplication to sPath
+        Get vFolderFormat sPath to sPath
+        Get vFolderFormat sPath to sPath
+        Get Module_Name of ghoApplication to sProgram
+        Move (Pos(".", sProgram)) to iPos
+        Move (Left(sProgram, (iPos - 1))) to sProgram
+
+        // Log errors to a logfile in the folder where the DataFlex program was started from.
+        // E.g. ..\Programs\DFServiceProgram1_ErrorLog.txt
+
+        If (Trim(psLogFile(Self)) = '') Begin     //GM Don't overwrite if set already
+            Set psLogFile to (sPath + sProgram + CS_ServiceLogFile)
+        End
+    End_Procedure
+
+    //Doc/ Interface=Private Type=Property
+    Function Help_Context Integer Context_Type Returns String
+        Function_Return (piCurrent_Error_Number(Self))
+    End_Function
+
+    //*** Catch and display error Error#.
+    //Doc/ Interface=Public
+    Procedure Trap_Error Integer Error#
+        Send Trap_Error to (TrappedErrors(Self)) Error#
+    End_Procedure
+
+    //*** Pass error Error# on to the regular DataFlex error handler.
+    //Doc/ Interface=Public
+    Procedure Ignore_Error Integer Error#
+        Send Ignore_Error to (TrappedErrors(Self)) Error#
+    End_Procedure
+
+    //*** Catch and display all errors.
+    //Doc/ Interface=Public
+    Procedure Trap_All
+        Send Trap_All to (TrappedErrors(Self))
+    End_Procedure
+
+    //*** Forward all error to regular DataFlex error handler.
+    //Doc/ Interface=Public
+    Procedure Ignore_All
+        Send Ignore_All to (TrappedErrors(Self))
+    End_Procedure
+
+    //*** Build complete error description from Flexerrs and user error message.
+    //Doc/ Interface=Private
+    Function Error_Description Integer Error# String ErrMsg Returns String
+        String Full_Error_Text
+
+        Move (Trim(ErrMsg)) to ErrMsg
+        Move (Trim(Error_Text(DESKTOP, Error#))) to Full_Error_Text
+
+        If (ErrMsg <> "") Begin
+            If ((Full_Error_Text <> "") and Error_Text_Available(DESKTOP, Error#)) Begin
+                // Make sure last character of error text is a separating symbol.
+                // if not, add a "." So we have format of "error-text. error-detail"
+                If (Pos(Right(Full_Error_Text, 1), ".,:;") = 0) Begin
+                    Move (Full_Error_Text - ".") to Full_Error_Text
+                End
+                Move (Full_Error_Text * ErrMsg) to Full_Error_Text
+            End
+            Else Begin
+                Move ErrMsg to Full_Error_Text
+            End
+        End
+
+        Function_Return Full_Error_Text
+    End_Function
+
+    //** Return true if an error number is critical
+    //Doc/ Interface=Private
+    Function Is_Critical Integer Error# Returns Integer
+        Function_Return (".3.10.18.19.20.21.22.43.70.72.74.75.78.80.97." contains ("." + String(Error#) + "."))
+    End_Function
+
+    // As we are running the program as a Windows service, errors should NOT
+    // be shown to user but instead written to logfile.
+    //Doc/ Type=Event Interface=Public
+    Procedure Error_Report Integer ErrNum Integer Err_Line String ErrMsg
+        Integer icon# critical oldco
+        String errortext sMess
+        String sSource
+        Integer iSrcPos iSrc iTxtLen
+
+        If (Error_Processing_State(Self)) Begin  // don't allow error
+            Procedure_Return                      // recursion
+        End
+
+        Set Error_Processing_State to True       // we are now in an error reporting state
+        Set piCurrent_Error_Number to ErrNum
+        Set piError_line_Number    to Err_Line
+
+        If not (isTrapped(TrappedErrors(Self), ErrNum)) Begin
+            // if trapped do nothing
+        End
+
+        Else Begin
+            // See if source information is provided (Source = module.function). If so remove
+            // as detail. Must find last instance of this in string
+            Move (Pos(C_ErrorContextSourceText,ErrMsg)) to iSrc
+            If (iSrc) Begin
+                Move (iSrc - 1) to iSrcPos
+                Move (Length(C_ErrorContextSourceText)) to  iTxtLen
+                Move ErrMsg to sSource
+                Repeat // this makes sure we find last instance of this
+                    Move (Remove(sSource, 1, iSrc-1 + iTxtLen ))  to sSource // right part of string
+                    Move (Pos(C_ErrorContextSourceText, sSource)) to iSrc    // see if it was the last
+                    If (iSrc) Begin                                          // if not, track length
+                        Move (iSrcPos + iTxtLen + iSrc-1) to iSrcPos
+                    End
+                Until (iSrc = 0)
+                Move (Trim(Left(ErrMsg, iSrcPos))) to ErrMsg
+                If (Right(ErrMsg, 1) = ",") Begin
+                    Move (Left(ErrMsg,Length(ErrMsg) -1)) to ErrMsg
+                End
+            End
+
+            Get Error_Description ErrNum ErrMsg to errortext
+
+            // If the error source is identified we can get extended error
+            // text for our error message
+            If ghoErrorSource Begin
+                Get Extended_Error_Message of ghoErrorSource to sMess
+                If (sMess <> "") Begin
+                    Move (ErrorText + "\n\n" + sMess ) to ErrorText
+                End
+            End
+            If (pbVerbose_State(Self) = True) Begin
+                Move (ErrorText + "\n\n" + SFormat(C_$TechnicalDetails, ErrNum, Err_Line) ) to ErrorText
+                If (sSource <> "") Begin
+                    Move (Errortext + "\n" + C_$ErrorSource + " =" * sSource) to ErrorText
+                End
+            End
+            Get Is_Critical ErrNum to critical
+            Move (If(Critical,MB_IconHand,MB_IconExclamation)) to icon#
+            Move Self to oldco
+
+            Send LogMessage (C_$Error + "-" + Errortext)   // Redirected to logfile
+
+            // Abort on critical errors
+            If (Critical) Begin
+                Send LogMessage of Error_Info_object ("Process terminated!" * String(ErrMsg))
+                Abort
+            End
+        End
+        
+        Move 0 to ghoErrorSource
+        Set Error_Processing_State to False // no longer reporting an error
+    End_Procedure
+
+    // Adds text strings to the _top_ of the logfile.
+    // Passed strings are automatically preceeded by the current date & time.
+    Procedure LogMessage String sText
+        String sLogFile sTime sData
+        Integer iCh iPos iSize iArg
+        Boolean bToAnsi
+
+        Get Seq_New_Channel to iCh
+        Get psLogFile to sLogFile
+        Get pbToAnsi to bToAnsi
+        Move (Trim(sLogFile)) to sLogFile
+        If  (iCh < 0 or sLogFile = "") Begin
+            Procedure_Return
+        End
+
+        Direct_Input channel iCh ("Binary: " + sLogFile)
+            Get_Channel_Size iCh to iSize
+#IF (!@ < 200)
+            Get_Argument_Size to iArg
+            If (iSize > iArg) Begin
+                Set_Argument_Size (iSize + 10)
+            End
+#ENDIF
+            Read_Block channel iCh sData iSize
+        Close_Input channel iCh
+
+        Move (CurrentDateTime()) to sTime
+        Move (Pos(",", sTime))   to iPos
+        Move (Left(sTime, (iPos - 1))) to sTime
+        Move (sTime + "  " + String(sText))   to sText
+        If (bToAnsi = True) Begin
+            Move (ToAnsi(sText)) to sText
+        End
+        Move (sText + (Character(13) + Character(10))) to sText
+
+        // First write the new row; then append the old file content:
+        Direct_Output channel iCh sLogFile
+            Writeln   channel iCh sText
+            Write     channel iCh sData
+        Close_Output  channel iCh
+
+        Send Seq_Release_Channel iCh
+#IF (!@ < 200)
+        If (iArg < 65533) Begin
+            Set_Argument_Size 65533
+        End
+#ENDIF
+    End_Procedure
+
+//    // Returns the full path of the Application (no trailing "\")
+//    Function ApplicationPath Returns String
+//        String sApplicationFileName sPath
+//        Integer iNumChars iRetval
+//
+//        Move (Repeat(Character(0), 1024))    to sApplicationFileName
+//        Move (GetModuleFileName(0, AddressOf(sApplicationFileName), 1024)) to iNumChars
+//        Move (CString(sApplicationFileName)) to sApplicationFileName
+//        Move (PathRemoveFileSpec(AddressOf(sApplicationFileName))) to iRetval
+//        Move (CString(sApplicationFileName)) to sPath
+//
+//        Function_Return sPath
+//    End_Function
+
+    //Doc/ Type=Property Interface=Private
+    Function Help_Name Returns String
+        Function_Return (Append("ERROR:", lastErr))
+    End_Function
+
+End_Class

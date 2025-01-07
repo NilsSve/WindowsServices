@@ -1,0 +1,1432 @@
+//****************************************************************************
+// $Module type: Class
+// $Module name: cWindowsServiceFunctions.pkg
+// $Author     : Nils Svedmyr, RDC Tools International, <mailto:support@rdctools.com>
+//               Portions by Bernhard Ponemayr and Allan Kim Eriksen.
+// Web-site    : http://www.rdctools.com
+// Created     : 2014-07-05 @ 13:43
+//
+// Description : Creates, edits, removes, starts & stops Windows Services
+//               Use it to e.g. run a program as a service (not only a DataFlex program).
+//
+//               An object of the cWindowsServiceFunctions class is created at the bottom
+//               of this package. Use the global handle "ghoWindowsServiceFunctions"
+//               to call functions from the library.
+//
+// IMPORTANT   : See also the template program "DFServiceProgram1.src" on how to write/design a
+//               DataFlex program that is to be run as a Windows service.
+//
+// Tip         : Dont use the local system account when setting up the Windows service.
+//               It leads to problems for the DataFlex user count file.
+//               Best (?) is to set the service to run with a local administrator account.
+//
+// NOTE!       : This program should have the following in the programs manifest file:
+//                  <v3:trustInfo xmlns:v3="urn:schemas-microsoft-com:asm.v3">
+//                      <v3:security>
+//                          <v3:requestedPrivileges>
+//                                <v3:requestedExecutionLevel level="requireAdministrator"></v3:requestedExecutionLevel>
+//                          </v3:requestedPrivileges>
+//                      </v3:security>
+//                  </v3:trustInfo>
+// ..where the important bit is the "requireAdministrator" word (Usually it is "asInvoker")
+//   However, this sadly means that the Studio can't load this program into the debugger
+// ..or you could change it back to "asInvoker", but you then always needs to start the program "As Administrator" by, right-clicking the .exe file.
+//
+// Helper Util : NSSM - the Non-Sucking Service Manager.
+//               nssm is a service helper which doesn't suck. SrvAny and other service helper programs suck because
+//               they don't handle failure of the application running as a service. If you use such a program you may
+//               see a service listed as started when in fact the application has died. NSSM monitors the running service
+//               and will restart it if it dies. With NSSM you know that if a service says it's running, it really is.
+//               Alternatively, if your application is well-behaved you can configure NSSM to absolve all responsibility
+//               for restarting it and let Windows take care of recovery actions.
+//
+//               NSSM logs its progress to the system Event Log so you can get some idea of why an application isn't
+//               behaving as it should.
+//               Web-site: http://www.nssm.cc/
+//
+//               Signtool.exe. A Microsoft program that is used to verify the digital certificate of the program,
+//               iif (if-and-only-if) the program has been digitally signed.
+//
+//
+// The code is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// This is free software; you can redistribute it and/or modify it under the terms of the
+// GNU Lesser General Public License.
+// License: LGPLv3 - GNU LESSER GENERAL PUBLIC LICENSE Version 3 - http://www.gnu.org/licenses/lgpl.txt
+//
+// $Rev History:
+//    2014-07-05  Module header created
+//****************************************************************************
+Use WinServiceLanguageConstants.inc
+Use cWindowsServiceFunctions.inc
+
+// ***** EXTERNAL FUNCTION DECLARATIONS: *****
+//
+// Function that suspends the execution of the current thread until the time-out interval elapses.
+// Parameters:
+//   dwMilliseconds [in]
+//   The Time interval for which execution is to be suspended, in milliseconds.
+//    a value of zero causes the thread to relinquish the remainder of its Time slice to any other thread that is
+//    ready to run. If there are no other threads ready to run, the Function Returns immediately,
+//    and the thread continues execution.
+//
+// Remarks:
+//   This Function causes a thread to relinquish the remainder of its Time slice and become unrunnable for an interval
+//   based on the value of dwMilliseconds. The system clock "ticks" at a constant rate. If dwMilliseconds is less than
+//   the resolution of the system clock, the thread may Sleep for less than the specified length of Time.
+//  http://msdn.microsoft.com/en-us/library/windows/desktop/ms686298%28v=vs.85%29.aspx
+//
+Class cWindowsServiceFunctions is a cObject
+
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+
+    End_Procedure
+
+    // Returns the full path of the Application (no trailing "\")
+    Function ApplicationPath Returns String
+        String sApplicationFileName sPath
+        Integer iNumChars iRetval
+
+        Move (Repeat(Character(0), 1024))    to sApplicationFileName
+        Move (GetModuleFileName(0, AddressOf(sApplicationFileName), 1024)) to iNumChars
+        Move (CString(sApplicationFileName)) to sApplicationFileName
+        Move (PathRemoveFileSpec(AddressOf(sApplicationFileName))) to iRetval
+        Move (CString(sApplicationFileName)) to sPath
+
+        Function_Return sPath
+    End_Function
+
+    // Creates the nssm.exe program in the current folder if it doesn't exist.
+    Procedure CheckOrCreateNssmFile
+        String sPath sMemFileName sFileName
+        Boolean bExists
+
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+        Move (sPath + CS_NSSM_Program) to sFileName
+        Get vFilePathExists sFileName  to bExists
+        If (bExists = False) Begin
+            // Read from memory & create the file on disk.
+            Move  "Resource:res_Install_nssmFile" to sMemFileName
+            Send CreateFileFromMemory sMemFileName sFileName
+        End
+    End_Procedure
+
+    // Function checks that the first three paramters in the passed tNSSMWinService struct
+    // are correct.
+    // Returns a tNSSMReply struct with iRetval = 0 if successful, and if an error the sRetval param
+    // is the error message text.
+    Function CheckServiceParameters tNSSMWinService NSSMWinService Returns tNSSMReply
+        Boolean bExists
+        tNSSMReply NSSMReply
+
+        Send CheckOrCreateNssmFile
+
+        Get vFolderFormat NSSMWinService.sProgramPath to NSSMWinService.sProgramPath
+        Get vFilePathExists (Trim(NSSMWinService.sProgramPath) + Trim(NSSMWinService.sProgramName)) to bExists
+        If (bExists = False) Begin
+            Move 1 to NSSMReply.iRetval
+            Move (CS_WSUCheckServiceParam1 * (NSSMWinService.sProgramPath + NSSMWinService.sProgramName) + CS_WSUCheckServiceParam2) to NSSMReply.sRetval
+            Function_Return NSSMReply
+        End
+
+        If (Trim(NSSMWinService.sServiceName) = "") Begin
+            Move 1 to NSSMReply.iRetval
+            Move CS_WSUCheckServiceParam3 to NSSMReply.sRetval
+            Function_Return NSSMReply
+        End
+        
+        Move 0 to NSSMReply.iRetval
+        Function_Return NSSMReply
+    End_Function
+
+    // Creates a file, that has been embedded by the compiler into the
+    // program, in the current folder.
+    Procedure CreateFileFromMemory String sMemFileName String sFileName
+        String sText
+        Integer iCh iSize iArgSize
+
+        Send Cursor_Wait of Cursor_Control
+        Get Seq_Open_Input_Channel sMemFileName to iCh
+            Get_Channel_Size   iCh to iSize
+            Get_Argument_Size to  iArgSize
+            If (iSize > iArgSize) Begin
+                Set_Argument_Size iSize
+            End
+            Read_Block channel iCh sText iSize
+        Send Seq_Close_Channel iCh
+
+        Get Seq_Open_Output_Channel sFileName to iCh
+            Write channel iCh sText
+        Send Seq_Close_Channel iCh
+
+        If (iSize <> iArgSize) Begin
+            Set_Argument_Size iArgSize
+        End
+
+        // Wait for file to be written to disk.
+        Sleep 2
+        Send Cursor_Ready of Cursor_Control
+    End_Procedure
+
+    // Creates a Windows Service for the passed struct sServiceName, sProgramName & sProgramPath parameters.
+    // Those three are mandatory parameters.
+    // You may also pass a description for the service, which account name to run under & the password for the account, if applicable.
+    // Finally a Command Line parameter (start-up parameter) that is to be passed to the service when started can be used.
+    // Note that the passed password must have been decrypted if previously encrypted.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure CreateService tNSSMWinService NSSMWinService
+        tNSSMReply NSSMReply
+        String sRetval
+
+        Get CreateService NSSMWinService to NSSMReply
+
+        If (NSSMReply.iRetval = 0) Begin
+            If (NSSMWinService.sAccountName = "") Begin
+                Move (NSSMReply.sRetval * CS_WSUCreateServiceParam1) to sRetval
+            End
+            Else Begin
+                Move NSSMReply.sRetval to sRetval
+            End
+            Send Info_Box sRetval
+        End
+        Else Begin
+            Send Info_Box NSSMReply.sRetval
+        End
+    End_Procedure
+
+    // Same as the procedure CreateService execpt that it doesn't have a user interface.
+    // It is send by the CreateService procedure which also displays the result.
+    // Returns a struct with iRetval = 0 if successful
+    //                   and sRetval string with a text message.
+    Function CreateService tNSSMWinService NSSMWinService Returns tNSSMReply
+        String sPath sParams sTmp sRetval sProgramPath sServiceName
+        String[] sValueArray sValueArray2
+        Integer iRetval i iItems
+        tNSSMReply NSSMReply NSSMTemp
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Move (Trim(NSSMWinService.sServiceName))             to sServiceName
+        Move ('"' + Trim(NSSMWinService.sServiceName) + '"') to sServiceName
+        Get IsServiceRunning NSSMWinService to NSSMTemp
+        If (NSSMTemp.sRetval = CS_ServiceRunning or NSSMTemp.sRetval = CS_ServiceStopped) Begin
+            Move 1 to NSSMReply.iRetval
+            Move CS_WSUCreateServiceparam2 to NSSMReply.sRetval
+            Function_Return NSSMReply
+        End
+
+        Send Cursor_Wait  of Cursor_Control
+        Move "" to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        // Parameter setup (Note that we allow for a variation of the number of parameters passed):
+        // Program Path:
+        // The logic relies on that the nssm.exe exists in the same Programs folder as the DataFlex program
+        // that is to be installed as a service.
+        Move (Trim(NSSMWinService.sProgramPath)) to sProgramPath
+        Get vFolderFormat sProgramPath           to sProgramPath
+        Move (CS_NSSM_Install * sServiceName * ('"' + sProgramPath + Trim(NSSMWinService.sProgramName) + '"')) to sParams
+        If (Trim(NSSMWinService.sCmdLineParam) <> "") Begin
+            Move (sParams * '"""' + Trim(NSSMWinService.sCmdLineParam) + '"""') to sParams
+        End
+
+        // *** Windows is genuinly odd! ***
+        // If the program has _not_ been started with "elevated rights" ("Run as administrator"), Windows will report
+        // that none of the operations below were successful, while in fact they all succeeded!
+        // For that reason the error catching below has been commented out (for now!)
+        //
+        // Execute command "Install" & catch the output:
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+//        If (sValueArray[0] contains CS_ServiceInstallRequireAdminRights) Begin
+//            Send Stop_Box "Windows reports that installing a service requires Administrator rights. Cannot continue."
+//            Function_Return NSSMTemp
+//        End
+        If (iRetval = 0 and (Trim(NSSMWinService.sDescription) <> "" or Trim(NSSMWinService.sAccountName) <> "")) Begin
+            // If the "Install" command succeeded, add the description:
+            If (Trim(NSSMWinService.sDescription) <> "") Begin
+                Move ("set" * sServiceName * CS_NSSM_DescriptionText * '"' + Trim(NSSMWinService.sDescription) + '"') to sParams
+                Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray2) to iRetval
+//                If (iRetval <> 0) Begin
+//                    Move sValueArray2 to sValueArray
+//                    Get RemoveService NSSMWinService to NSSMTemp
+//                End
+            End
+            // If the "Install" command succeeded, add the account name:
+            If (Trim(NSSMWinService.sAccountName) <> "") Begin
+                Move ("set" * sServiceName * CS_NSSM_ObjectNameText * '"' + Trim(NSSMWinService.sAccountName) + '"' *  Trim(NSSMWinService.sPw)) to sParams
+                Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray2) to iRetval
+//                If (iRetval <> 0) Begin
+//                    Move sValueArray2 to sValueArray
+//                    Get RemoveService NSSMWinService to NSSMTemp
+//                End
+            End
+        End
+
+        // Concatanate result strings to be displayed for the user in an info_box.
+        Move iRetval to NSSMReply.iRetval
+        Move (SizeOfArray(sValueArray)) to iItems
+        Decrement iItems
+        For i from 0 to iItems
+            Move sValueArray[i] to sTmp
+            If (sTmp <> "") Begin
+                Move (sRetval + sTmp + CR_LF) to sRetval
+            End
+        Loop
+        Move sRetval to NSSMReply.sRetval
+        Send Cursor_Ready of Cursor_Control
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Starts the nssm.exe GUI.
+    // All parameters for the selected Windows Service can there be edited.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure EditService tNSSMWinService NSSMWinService
+        String sParams sPath sProgNamePath
+        tNSSMReply NSSMReplay
+
+        If (Trim(NSSMWinService.sAccountName) = "") Begin
+            Send Info_Box (CS_WSUEditServiceParam1 + sProgNamePath * CS_WSUEditServiceParam2)
+        End
+
+        Get EditService NSSMWinService to NSSMReplay
+
+        If (NSSMReplay.iRetval <> 0) Begin
+            Send Stop_Box (NSSMReplay.sRetval + CS_WSUAdminRightsText)
+        End
+
+    End_Procedure
+
+    // Starts the nssm.exe GUI via a runprogram wait.
+    // All parameters for the selected Windows Service can there be edited.
+    // No error or info is given if the passed parameters are wrong.
+    // Use the Procedure EditService to display possible errors.
+    Function EditService tNSSMWinService NSSMWinService Returns tNSSMReply
+        String sParams sPath
+        tNSSMReply NSSMReply
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+        Move ("edit" * '"' + Trim(NSSMWinService.sServiceName) + '"') to sParams
+
+//        Runprogram Shell Wait ('"' + sPath + CS_NSSM_Program + '"') sParams
+        Send vShellExecute "open" ('"' + sPath + CS_NSSM_Program + '"') sParams ('"' + sPath + '"')
+        Function_Return NSSMReply
+    End_Function
+
+    // Returns Windows Service Accounts for the current machine
+    // as a string array.
+    // It only lists service accounts that are used by currently
+    // installed services.
+    Function EnumerateServiceAccounts Returns String[]
+        String[] sValueArray sServicesArray sValueArrayReturn sValueArrayTemp sValueArrayEmpty
+        String  sValue sNewvalue sServiceName sParams sPath
+        Integer iRetval iCount iItems
+
+        Send Cursor_Wait of Cursor_Control
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NetProgram CS_NetStartParam "" (&sValueArray) to iRetval
+
+        If (iRetval = 0) Begin
+            Move (SortArray(sValueArray)) to sValueArray
+            Move (SizeOfArray(sValueArray)) to iItems
+            Decrement iItems
+            Move "" to sValue
+            For iCount from 0 to iItems
+                Move (Trim(sValueArray[iCount])) to sNewvalue
+                If (sNewvalue <> "" and sNewvalue <> sValue and not(sNewvalue contains "These Windows services")) Begin
+                    Move sNewvalue to sServicesArray[SizeOfArray(sServicesArray)]
+                    Move sNewvalue to sValue
+                End
+            Loop
+        End
+
+        Move (SizeOfArray(sServicesArray)) to iItems
+        Move (SortArray(sServicesArray)) to sServicesArray
+        Decrement iItems
+        If (iItems > 0) Begin
+            Get ApplicationPath     to sPath
+            Get vFolderFormat sPath to sPath
+            For iCount from 0 to iItems
+                Move sServicesArray[iCount] to sServiceName
+                Move (Replaces('"', sServiceName, ''))   to sServiceName
+                Move ('"' + Trim(sServiceName) + '"')    to sServiceName
+
+                // User account which runs the service.
+                Move ("get" * sServiceName * CS_NSSM_ObjectNameText) to sParams
+                Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArrayTemp) to iRetval
+                If (iRetval = 0) Begin
+                    Move sValueArrayTemp[0] to sValueArrayReturn[SizeOfArray(sValueArrayReturn)]
+                End
+            Loop
+            Move (SizeOfArray(sValueArrayReturn)) to iItems
+            Move (SortArray(sValueArrayReturn)) to sValueArray
+            Decrement iItems
+            If (iItems > 0) Begin
+                Move sValueArrayEmpty  to sValueArrayReturn
+                Move "" to sValue
+                For iCount from 0 to iItems
+                    Move (Trim(sValueArray[iCount])) to sNewvalue
+                    If (sNewvalue <> "" and Uppercase(sNewvalue) <> Uppercase(sValue)) Begin
+                        Move sNewvalue to sValueArrayReturn[SizeOfArray(sValueArrayReturn)]
+                        Move sNewvalue to sValue
+                    End
+                Loop
+
+            End
+        End
+
+        Send Cursor_Wait of Cursor_Control
+
+        Function_Return sValueArrayReturn
+    End_Function
+
+    // Returns a string array with all user profiles for the current computer.
+    // Uses the registry to find accounts (some of them - not all)
+    Function EnumUserProfilesRegistry Returns String[]
+        String[] sRetvalArray
+        String sKey sUserProfile
+        Integer iCount iItems iSize
+        Handle hoRegistry hoArray
+        Boolean bOpened bExists
+
+        Get Create (RefClass(cRegistry)) to hoRegistry
+        Set phRootKey          of hoRegistry to HKEY_LOCAL_MACHINE
+        Set pfAccessRights     of hoRegistry to KEY_READ
+        Get KeyExists of hoRegistry CS_RegistryEnumUserPath to bExists
+        If (bExists = True) Begin
+            Get OpenKey of hoRegistry CS_RegistryEnumUserPath to bOpened
+            If (bOpened = True) Begin
+                Move "Local System" to sRetvalArray[0]
+                Get Create (RefClass(Array)) to hoArray
+                Get GetSubkeys  of hoRegistry hoArray to iItems
+                Decrement iItems
+                For iCount from 0 to iItems
+                    Move (Value(hoArray, iCount)) to sKey
+                    Get OpenKey of hoRegistry (CS_RegistryEnumUserPath + "\" + String(sKey)) to bOpened
+                    If (bOpened = True) Begin
+                        Get ReadString of hoRegistry CS_RegistryProfileImagePath to sUserProfile
+                        Get ParseFileName sUserProfile to sUserProfile
+                        Move (SizeOfArray(sRetvalArray)) to iSize
+                        Move sUserProfile to sRetvalArray[iSize]
+                    End
+                Loop
+                Send CloseKey of hoRegistry
+                Send Destroy  of hoArray
+            End
+        End
+        Send Destroy of hoRegistry
+        Move (SortArray(sRetvalArray)) to sRetvalArray
+
+        Function_Return sRetvalArray
+    End_Function
+
+    // Returns -1 (CI_TasklistRunError) if the tasklist program run into some sort of error and can't list the program.
+    // Returns a zero (0) if the program is not currently running as a service or as a program. Then it is OK to start it.
+    // Returns 1 (CI_TasklistRunAsService) if it is running as a service.
+    // Returns 2 (CI_TasklistRunAsConsole) if it is already running as a program (console mode program).
+    Function IsProgramRunning String sProgramName Returns Integer
+        String sParams sValue
+        String[] sValueArray
+        Integer iRetval iCount iItems iConsoleMode iServiceMode
+
+        Move (CS_FITasklistParam * '"' + CS_TasklistImageNameParam * sProgramName + '"') to sParams
+
+        Get ExternalProgramResult of ghoExternalProgramResult CS_TasklistProgram sParams "" (&sValueArray) to iRetval
+
+        Move (SizeOfArray(sValueArray)) to iItems
+        If (iRetval <> 0) Begin
+            Function_Return CI_TasklistRunError
+        End
+
+        Decrement iItems
+        Move 0 to iConsoleMode
+        Move 0 to iServiceMode
+
+        // The text we are after starts at the third element.
+        For iCount from 3 to iItems
+            Move sValueArray[iCount] to sValue
+            If (sValue contains CS_TasklistConsole) Begin
+                Increment iConsoleMode
+            End
+            If (sValue contains CS_TasklistServices) Begin
+                Increment iServiceMode
+            End
+        Loop
+
+        If (iConsoleMode > 1) Begin
+            Move CI_TasklistRunAsConsole to iRetval
+        End
+        If (iServiceMode > 0) Begin
+            // Then the program is already running as a service
+            Move CI_TasklistRunAsService to iRetval
+        End
+
+        Function_Return iRetval
+    End_Function
+
+    // Pass the full Path + a Program Name including extension, to check if
+    // a program is installed as a Windows Service.
+    // Returns True if the program is installed as a Windows Service.
+    // Note that it doesn't say if the service is running, paused or stopped.
+    Function IsProgramInstalledAsService String sPath String sProgramName Returns Boolean
+        Handle hoRegistry hoArray
+        Boolean bExists bOpened bSuccess
+        Integer iCount iItems
+        String sKey sCheckIfExistProgram sApplicationName
+
+        Move False to bSuccess
+        Get vFolderFormat sPath to sPath
+        Move (sPath + Trim(sProgramName)) to sCheckIfExistProgram
+        Get Create (RefClass(cRegistry)) to hoRegistry
+        Set phRootKey          of hoRegistry to HKEY_LOCAL_MACHINE
+        Set pfAccessRights     of hoRegistry to KEY_READ
+
+        Get KeyExists of hoRegistry CS_RegistryServiceInstalled to bExists
+        If (bExists = True) Begin
+            Get OpenKey of hoRegistry CS_RegistryServiceInstalled to bOpened
+            If (bOpened = True) Begin
+                Get Create (RefClass(Array)) to hoArray
+                Get GetSubkeys of hoRegistry hoArray to iItems
+                Decrement iItems
+
+                // Iterate through all installed services and check for a match:
+                For iCount from 0 to iItems
+                    Send CloseKey of hoRegistry
+                    Get Value of hoArray item iCount to sKey
+                    Get KeyExists of hoRegistry (CS_RegistryServiceInstalled + "\" + sKey + "\" + CS_RegistryParametersKey) to bExists
+                    If (bExists = True) Begin
+                        Get OpenKey of hoRegistry (CS_RegistryServiceInstalled + "\" + sKey + "\" + CS_RegistryParametersKey) to bOpened
+                        If (bOpened = True) Begin
+                            Get ValueExists of hoRegistry CS_RegistryApplicationKey to bExists
+                            If (bExists = True) Begin
+                                Get ReadString of hoRegistry CS_RegistryApplicationKey to sApplicationName
+                                Move (Uppercase(sApplicationName) = Uppercase(sCheckIfExistProgram)) to bSuccess
+                            End
+                        End
+                    End
+                    // End loop if a program match was found.
+                    If (bSuccess = True) Begin
+                        Move iItems to iCount
+                    End
+                Loop
+
+                Send CloseKey of hoRegistry
+                Send Destroy of hoArray
+            End
+        End
+        Send Destroy of hoRegistry
+
+        Function_Return bSuccess
+    End_Function
+
+    // Returns an struct with an iRetval integer = 0 if the service is running,
+    // and a sRetval string with the return message text.
+    Function IsServiceRunning tNSSMWinService NSSMWinService Returns tNSSMReply
+        Integer iRetval i iItems
+        String[] sValueArray
+        String sParams sRetval sPath sTmp sServiceName
+        tNSSMReply NSSMReply
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Move "" to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        Move (Trim(NSSMWinService.sServiceName)) to sServiceName
+        Move (Replaces('"', sServiceName, ''))   to sServiceName
+        Move ('"' + Trim(sServiceName) + '"')    to sServiceName
+        Move ("status" * sServiceName)           to sParams
+
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        Move iRetval to NSSMReply.iRetval
+
+        Move (SizeOfArray(sValueArray)) to iItems
+        Decrement iItems
+        For i from 0 to iItems
+            Move sValueArray[i] to sTmp
+            If (sTmp <> "") Begin
+                Move (sRetval * String(sTmp) + CR_LF) to sRetval
+            End
+        Loop
+        Move (Replace(CR_LF, sRetval, "")) to sRetval
+        Move (Replace("_", sRetval, " ")) to sRetval
+        Get ProperCase sRetval to sRetval
+        Move sRetval to NSSMReply.sRetval
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Courtesy of Allan Kim Eriksen
+    Procedure MakeServiceSleep Integer iMillSec
+        Integer iVoid
+        Move (DFServiceSleep(iMillSec)) to iVoid
+    End_Procedure
+
+    // Propercase a string
+    // Curtesy of DaveR from the DAW newsgroups.
+    Function ProperCase String sText Returns String
+        Integer ii iCt
+        String sWork sOut sChar
+
+        Move (Lowercase(sText)) to sWork
+        Move 0 to iCt
+        For ii from 1 to (Length(swork))
+            Move (Mid(sWork,1,ii)) to sChar
+            If (iCt=0) Begin
+                Move (Append(sOut,Uppercase(sChar))) to sOut
+            End
+            Else Begin
+               If (sChar=" " or sChar="-") Begin
+                   Move -1 to iCt // Set next time flag
+               End
+               Move (Append(sOut,sChar)) to sOut
+            End
+            Increment iCt
+        Loop
+
+        Function_Return sOut
+    End_Function
+
+    // Queries the service and shows info about:
+    // Name, Description, Status, Log On Account, Startup Type, Service Type & Program Path.
+    // It uses the function QueryService to get the data and displays it.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure QueryService tNSSMWinService NSSMWinService
+        tNSSMReply NSSMReply
+        String sRetval
+
+        Get QueryService NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval = 0) Begin
+            Send Info_Box NSSMReply.sRetval CS_WSUQueryServiceHeader
+        End
+        Else Begin
+            Send Stop_Box NSSMReply.sRetval CS_WSUQueryServiceHeader
+        End
+    End_Procedure
+
+    // Same as the procedure QueryService execpt that it doesn't have a user interface.
+    // It is send by the QueryService procedure which also displays the result.
+    // Returns a struct with iRetval = 0 if successful
+    //                   and sRetval string with a text message.
+    //
+    // Queries the service and returns info about:
+    // Name, Description, Status, Log On Account, Startup Type, Service Type & Program Path.
+    Function QueryService tNSSMWinService NSSMWinService Returns tNSSMReply
+        Integer iRetval i iStatus
+        String[] sValueArray
+        String sParams sRetval sPath sTmp sTab sServiceName
+        tNSSMReply NSSMReply NSSMTemp
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Send Cursor_Wait of Cursor_Control
+        Move 0  to iRetval
+        Move 0  to iStatus
+        Move "" to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        Move (Character(9)) to sTab
+        Move (Trim(NSSMWinService.sServiceName)) to sServiceName
+        Move (Replaces('"', sServiceName, ''))   to sServiceName
+        Move ('"' + Trim(sServiceName) + '"')    to sServiceName
+
+        // Service key name.
+        Move ("get" * sServiceName * CS_NSSM_NameText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move ("Name:"  + sTab + sTab + sValueArray[0]) to sRetval
+
+//        // Service display name. // ToDo: Should we display this info?s
+//        Move ("get" * sServiceName * CS_NSSM_DisplayNameText) to sParams
+//        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+//        Move ("Display name:" * sValueArray[0]) to sTmp
+//        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // Service description.
+        Move ("get" * sServiceName * CS_NSSM_DescriptionText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_WSUQueryServiceDesc + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp + CR_LF) to sRetval
+
+        // Is service running.
+        Get IsServiceRunning NSSMWinService to NSSMTemp
+        Move (CS_WSUQueryServiceStatus + sTab + sTab + Uppercase(NSSMTemp.sRetval)) to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // User account which runs the service.
+        Move ("get" * sServiceName * CS_NSSM_ObjectNameText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_WSUQueryServiceLogOnAs + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // Service startup type.
+        Move ("get" * sServiceName * CS_NSSM_StartText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move sValueArray[0] to sTmp
+        Get TranslateServiceStartupState sTmp to sTmp
+        Move (CS_WSUQueryServiceStartup + sTab + sTmp)  to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // Service type.
+        Move ("get" * sServiceName * CS_NSSM_TypeText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_WSUQueryServiceType + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // AppPriority.
+        Move ("get" * sServiceName * CS_NSSM_AppPriority) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_NSSM_AppPriority + ":" + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp + CR_LF) to sRetval
+
+        // Path to the service executable.
+        Move ("get" * sServiceName * CS_NSSM_ImagePathText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_WSUProgramPath + " (" + CS_NSSM_ImagePathText + "):" + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        Move (Replace("\nssm", sRetval, "\\nssm")) to sRetval
+        Move (sRetval + CR_LF + CR_LF + CS_WSUQueryServiceNote) to sRetval
+
+        Move iStatus to NSSMReply.iRetval
+        Move sRetval to NSSMReply.sRetval
+        Send Cursor_Wait of Cursor_Control
+
+        Function_Return NSSMReply
+    End_Function
+
+    Function QueryServiceFullStruct tNSSMWinService NSSMWinService Returns tNSSMWinService
+        Integer iRetval i iStatus
+        String[] sValueArray
+        String sParams sRetval sPath sTmp sTab sServiceName
+        tNSSMWinService NSSMWinServiceReply
+        tNSSMReply NSSMReply
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Move 0  to iRetval
+        Move 0  to iStatus
+        Move "" to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        Move (Character(9)) to sTab
+        Move (Trim(NSSMWinService.sServiceName)) to sServiceName
+        Move (Replaces('"', sServiceName, ''))   to sServiceName
+        Move ('"' + Trim(sServiceName) + '"')    to sServiceName
+
+        // Service key name.
+        Move ("get" * sServiceName * CS_NSSM_NameText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move sValueArray[0] to NSSMWinServiceReply.sServiceName
+
+        // Service description.
+        Move ("get" * sServiceName * CS_NSSM_DescriptionText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move sValueArray[0] to NSSMWinServiceReply.sDescription
+
+        // User account which runs the service.
+        Move ("get" * sServiceName * CS_NSSM_ObjectNameText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move sValueArray[0] to NSSMWinServiceReply.sAccountName
+
+        // Service startup type.
+        Move ("get" * sServiceName * CS_NSSM_StartText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move sValueArray[0] to sTmp
+        Get TranslateServiceStartupState sTmp to sTmp
+        Move (CS_WSUQueryServiceStartup + sTab + sTmp)  to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // Service type.
+        Move ("get" * sServiceName * CS_NSSM_TypeText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_WSUQueryServiceType + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp) to sRetval
+
+        // AppPriority.
+        Move ("get" * sServiceName * CS_NSSM_AppPriority) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move (CS_NSSM_AppPriority + ":" + sTab + sValueArray[0]) to sTmp
+        Move (sRetval + CR_LF + sTmp + CR_LF) to sRetval
+
+        // Path to the service executable.
+        Move ("get" * sServiceName * CS_NSSM_ImagePathText) to sParams
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        If (iRetval <> 0) Begin
+            Move iRetval to iStatus
+        End
+        Move sValueArray[0] to NSSMWinServiceReply.sProgramPath
+        Move (Replace(CS_NSSM_Program, NSSMWinServiceReply.sProgramPath, "")) to NSSMWinServiceReply.sProgramPath
+
+        Function_Return NSSMWinServiceReply
+    End_Function
+
+    // Removes the passed Windows Service.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure RemoveService tNSSMWinService NSSMWinService
+        Integer iRetval
+        tNSSMReply NSSMReply
+        Boolean bIsAdminMode
+        String sWeirdText
+
+        Get YesNo_Box (CS_WSURemoveServiceParam1 + '"' + NSSMWinService.sServiceName + '"?' + "\n\n" + CS_WSURemoveServiceParam2) to iRetval
+        If (iRetval <> MBR_Yes) Begin
+            Procedure_Return
+        End
+
+        Move (CR_LF + CS_WSURemoveServiceParam3) to sWeirdText
+        Get RemoveService NSSMWinService to NSSMReply
+
+        If (NSSMReply.iRetval = 0) Begin
+            If ( NSSMReply.sRetval contains CS_ServiceRemoveRequireAdminRights) Begin
+                Move (NSSMReply.sRetval + sWeirdText) to NSSMReply.sRetval
+            End
+            Send Info_Box NSSMReply.sRetval
+        End
+        Else Begin
+            Get IsAdministrator of ghoApplication to bIsAdminMode
+            If (bIsAdminMode = False) Begin
+                Move (NSSMReply.sRetval + CS_WSUAdminRightsText) to NSSMReply.sRetval
+            End
+            Else Begin
+                Move (NSSMReply.sRetval + CS_WSUAdminRightsText + CR_LF + sWeirdText) to NSSMReply.sRetval
+            End
+            Send Stop_Box NSSMReply.sRetval
+        End
+
+    End_Procedure
+
+    // Function that does the actual removal of a Windows service.
+    // Returns an struct with an iRetval integer = 0 if successful,
+    // and a sRetval string with a return message text message.
+    // No user interface.
+    Function RemoveService tNSSMWinService NSSMWinService Returns tNSSMReply
+        String sPath sParams sTmp sRetval sServiceName
+        String[] sValueArray
+        Integer iRetval i iItems
+        tNSSMReply NSSMReply NSSMTmp
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Send Cursor_Wait of Cursor_Control
+        Move "" to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        Move (Trim(NSSMWinService.sServiceName)) to sServiceName
+        Move ('"' + Trim(sServiceName) + '"')    to sServiceName
+        Move (CS_NSSM_Remove * sServiceName * CS_NSSM_Confirm) to sParams
+        Get IsServiceRunning NSSMWinService to NSSMTmp
+        If (NSSMTmp.iRetval <> 0) Begin
+            Function_Return NSSMTmp
+        End
+        If (Trim(NSSMTmp.sRetval) = CS_ServiceRunning) Begin
+            Get StopService NSSMWinService to NSSMTmp
+        End
+
+        // Remove Windows Service:
+        // Execute command & catch the output:
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+
+        Move iRetval to NSSMReply.iRetval
+        Move (SizeOfArray(sValueArray)) to iItems
+        Decrement iItems
+
+        For i from 0 to iItems
+            Move sValueArray[i] to sTmp
+            If (sTmp <> "") Begin
+                Move (sRetval + sTmp + CR_LF) to sRetval
+            End
+        Loop
+        Move sRetval to NSSMReply.sRetval
+        Send Cursor_Ready of Cursor_Control
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Stops and re-starts a Windows service.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure RestartService tNSSMWinService NSSMWinService
+        String sServiceName sRetval
+        tNSSMReply NSSMReply
+
+        Get RestartService NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval = 0) Begin
+            Send Info_Box NSSMReply.sRetval
+        End
+        Else Begin
+            Send Stop_Box (NSSMReply.sRetval + CS_WSUAdminRightsText)
+        End
+
+    End_Procedure
+
+    // Function that does the real work in removing a Windows service.
+    // Returns an struct with an iRetval integer = 0 if successful,
+    // and a sRetval string with a return message text message. No user interface.
+    Function RestartService tNSSMWinService NSSMWinService Returns tNSSMReply
+        Integer iRetval i iItems
+        Boolean bRunning
+        String[] sValueArray
+        String sParams sRetval sTmp sPath sServiceName
+        tNSSMReply NSSMReply
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Send Cursor_Wait of Cursor_Control
+        Move False to bRunning
+        Move ""    to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        Move (Trim(NSSMWinService.sServiceName)) to sServiceName
+        Move (Replaces('"', sServiceName, ''))   to sServiceName
+        Move (CS_NSSM_Restart * ('"' + Trim(sServiceName) + '"')) to sParams
+
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+        Move iRetval to NSSMReply.iRetval
+
+        Move (SizeOfArray(sValueArray)) to iItems
+        Decrement iItems
+
+        For i from 0 to iItems
+            Move sValueArray[i] to sTmp
+            If (sTmp <> "") Begin
+                Move (sRetval  + sTmp + CR_LF) to sRetval
+            End
+        Loop
+        Move sRetval to NSSMReply.sRetval
+        Send Cursor_Ready of Cursor_Control
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Starts the passed Windows service name. Note that the service needs to be installed first.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure StartService tNSSMWinService NSSMWinService
+        tNSSMReply NSSMReply
+
+        Get StartService NSSMWinService to NSSMReply
+
+        If (NSSMReply.iRetval = 0) Begin
+            Send Info_Box NSSMReply.sRetval
+        End
+        Else Begin
+            Send Stop_Box (NSSMReply.sRetval + CS_WSUAdminRightsText)
+        End
+
+    End_Procedure
+
+    // Does the actual start of the passed Windows service. No user interface.
+    // Returns an struct with an iRetval integer = 0 if successful,
+    // and a sRetval string with a return message text message.
+    Function StartService tNSSMWinService NSSMWinService Returns tNSSMReply
+        tNSSMReply NSSMReply
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Get StartStopServiceSUB NSSMWinService True to NSSMReply
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Stops the passed Windows service name. Note that the service needs to be installed first.
+    // The difference between the procedure & function with the same name is that (this) procedure has a
+    // user interface - i.e. it also shows the result in a message box to the user.
+    Procedure StopService tNSSMWinService NSSMWinService
+        tNSSMReply NSSMReply
+
+        Get StopService NSSMWinService to NSSMReply
+
+        If (NSSMReply.iRetval = 0) Begin
+            Send Info_Box NSSMReply.sRetval
+        End
+        Else Begin
+            Send Stop_Box (NSSMReply.sRetval + CS_WSUAdminRightsText)
+        End
+
+    End_Procedure
+
+    // Does the actual stop of the passed Windows service. No user interface.
+    // Returns an struct with an iRetval integer = 0 if successful,
+    // and a sRetval string with a return message text message.
+    Function StopService tNSSMWinService NSSMWinService Returns tNSSMReply
+        tNSSMReply NSSMReply
+
+        Get CheckServiceParameters NSSMWinService to NSSMReply
+        If (NSSMReply.iRetval <> 0) Begin
+            Function_Return NSSMReply
+        End
+
+        Get StartStopServiceSUB NSSMWinService False to NSSMReply
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Helper function for the StartService & StopService messages.
+    // For internal usage only.
+    Function StartStopServiceSUB tNSSMWinService NSSMWinService Boolean bStart Returns tNSSMReply
+        Integer iRetval i iItems
+        Boolean bRunning
+        String[] sValueArray
+        String sParams sRetval sTmp sPath sServiceName
+        tNSSMReply NSSMReply
+
+        Send Cursor_Wait of Cursor_Control
+        Move False to bRunning
+        Move ""    to sRetval
+        Get ApplicationPath     to sPath
+        Get vFolderFormat sPath to sPath
+
+        Move (Trim(NSSMWinService.sServiceName)) to sServiceName
+        Move (Replaces('"', sServiceName, ''))   to sServiceName
+        If (bStart = True) Begin
+            Move (CS_NSSM_StartText * ('"' + Trim(sServiceName) + '"')) to sParams
+        End
+        Else Begin
+            Move (CS_NSSM_Stoptext * ('"' + Trim(sServiceName) + '"')) to sParams
+        End
+
+        Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
+
+        Move iRetval to NSSMReply.iRetval
+        Move (SizeOfArray(sValueArray)) to iItems
+        Decrement iItems
+        For i from 0 to iItems
+            Move sValueArray[i] to sTmp
+            If (sTmp <> "") Begin
+                Move (sRetval + sTmp + CR_LF) to sRetval
+            End
+        Loop
+        Move sRetval to NSSMReply.sRetval
+        Send Cursor_Ready of Cursor_Control
+
+        Function_Return NSSMReply
+    End_Function
+
+    // Starts the Windows Service Manager program.
+    Procedure StartWindowsServiceManager
+        Runprogram Shell Background CS_WindowsServicesManager
+    End_Procedure
+
+    // Starts Windows Event Viewer.
+    Procedure StartWindowsEventViewer
+        Runprogram Shell Background CS_WindowsEventViewer
+        Send Info_Box CS_WSUStartWinEventViewInfo
+    End_Procedure
+
+    // Internal function for string "translations"
+    Function TranslateServiceStartupState String sNSSM_String Returns String
+        String sRetval
+
+        Case Begin
+            Case (sNSSM_String = CS_NSSM_ServiceAuto_Start)
+                Move CS_WSUStartupStateInfo1 to sRetval
+                Case Break
+            Case (sNSSM_String = CS_NSSM_ServiceDelayed_Start)
+                Move CS_WSUStartupStateInfo2 to sRetval
+                Case Break
+            Case (sNSSM_String = CS_NSSM_ServiceDemand_Start)
+                Move CS_WSUStartupStateInfo3 to sRetval
+                Case Break
+            Case (sNSSM_String = CS_NSSM_ServiceDisabled)
+                Move CS_WSUStartupStateInfo4 to sRetval
+                Case Break
+            Case Else
+                Move "" to sRetval
+        Case End
+
+        Function_Return sRetval
+    End_Function
+
+    // Dummy message. It is here for the compiler to embed the file into the program.
+    // IMPORTANT: You _will_ get a compile error if the "nssm.exe" file is missing from the
+    // workspace Programs folder.
+    //
+    { Visibility=Private MethodType=Event  NoDoc=True }
+    Procedure _DummyNssmFile
+        Include_Resource ..\Programs\nssm.exe as res_Install_nssmFile Type DF_RESOURCE_TYPE_BINARY
+    End_Procedure
+
+    // This is an alternative to be using the nssm.exe:
+    //
+    // Instrsrv.exe installs and removes system services from Windows NT and Srvany.exe allows any
+    // Windows NT application to run as a service.
+    //
+    // To create a Windows user-defined service, perform the following steps:
+    // 1. Syntax for the InstSrv.exe program:
+    //   INSTSRV <service name> (<exe location> | REMOVE)
+    //   Samples:
+    //     INSTSRV MyService C:\MyDir\DiskService.exe
+    //     - or -
+    //     INSTSRV MyService C:\mailsrv\mailsrv.exe -a MYDOMAIN\joebob -p foo
+    //   Remove service sample:
+    //     INSTSRV MyServcice REMOVE
+    //
+    // Example:
+    // C:\Program Files\Resource Kit\Instsrv.exe Notepad C:\Program Files\Resource Kit\Srvany.exe
+    // NOTE: to verify that the service was created correctly, check the registry to verify that the ImagePath value under
+    // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\service name
+    // is Set to point to SRVANY.EXE. If this is not Set correctly, the service will stop shortly after it starts and
+    // return an Event ID 7000 "The service name failed to start."
+    //
+    // 2. Under the following subkey:
+    // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\<My Service>
+    // Add the following:
+    //   Value Name: Application
+    //   Data Type : REG_SZ (String)
+    //   Example : c:\mydir\<myapplication.exe>
+    //
+
+    // Dummy message. It is here for the compiler to embed the file
+    // into the program.
+    // IMPORTANT: You _will_ get a compile error if the "instsrv.exe" file is missing from the workspace Programs folder.
+//    { Visibility=Private }
+//    { MethodType=Event  NoDoc=True }
+//    Procedure _DummyInstSrvFile
+//        Include_Resource ..\Programs\instsrv.exe as res_Install_InstSrvFile Type DF_RESOURCE_TYPE_BINARY
+//    End_Procedure
+//
+//    Procedure DoCheckCreateInstSrvFile
+//        String sPath sMemFileName sFileName
+//        Boolean bExists
+//
+//        // Check if the skinfile exists in Programs folder.
+//        If (IsDebuggerPresent()) Begin
+//            Get GetApplicationPath of ghoApplication to sPath
+//        End
+//        Else Begin
+//            Get_Current_Directory to sPath
+//        End
+//        Get vFolderFormat sPath to sPath
+//        Move (sPath + CS_InstSrvProgramName) to sFileName
+//        Get vFilePathExists sFileName to bExists
+//        If (bExists = False) Begin
+//            // Read from memory & create the file on disk.
+//            Move  "Resource:res_Install_InstSrvFile" to sMemFileName
+//            Send CreateFileFromMemory sMemFileName sFileName
+//        End
+//    End_Procedure
+//
+//    { Visibility=Private }
+//    { MethodType=Event  NoDoc=True }
+//    Procedure _DummySrvAnyFile
+//        Include_Resource ..\Programs\srvany.exe as res_Install_SrvAnyFile Type DF_RESOURCE_TYPE_BINARY
+//    End_Procedure
+//
+//    // Checks if the file exists in the Programs folder, else creates it by reading from memory
+//    // and writing it to disk
+//    Procedure DoCheckCreateSrvAnyFile
+//        String sPath sMemFileName sFileName
+//        Boolean bExists
+//
+//        If (IsDebuggerPresent()) Begin
+//            Get GetApplicationPath of ghoApplication to sPath
+//        End
+//        Else Begin
+//            Get_Current_Directory to sPath
+//        End
+//        Get vFolderFormat sPath to sPath
+//        Move (sPath + "SrvAny.exe") to sFileName
+//        Get vFilePathExists sFileName to bExists
+//        If (bExists = False) Begin
+//            // Read from memory & create the file on disk.
+//            Move  "Resource:res_Install_SrvAnyFile" to sMemFileName
+//            Send CreateFileFromMemory sMemFileName sFileName
+//        End
+//    End_Procedure
+
+//    // Creates a Windows Service with the passed sServiceName
+//    // Also pass the name of the program that should run
+//    // and the path to the program.
+//    //
+//    // Note: This program _must_ have the following in the programs manifest file:
+//    //         <v3:trustInfo xmlns:v3="urn:schemas-microsoft-com:asm.v3">
+//    //                <v3:security>
+//    //                        <v3:requestedPrivileges>
+//    //                                <v3:requestedExecutionLevel level="requireAdministrator"></v3:requestedExecutionLevel>
+//    //                        </v3:requestedPrivileges>
+//    //                </v3:security>
+//    //        </v3:trustInfo>
+//    // ..where the important bit is the "requireAdministrator" word (Usually it is "asInvoker")
+//    //
+//    Function CreateService2 String sServiceName String sProgramName String sProgramPath Returns String
+//        Boolean bExists bOpen
+//        Handle hoRegistry
+//        String sPath sParams sTmp sRetval
+//        String[] sValueArray
+//        Integer iRetval i iItems
+//
+//        Move "" to sRetval
+//        If (IsDebuggerPresent()) Begin
+//            Get GetApplicationPath of ghoApplication to sPath
+//        End
+//        Else Begin
+//            Get_Current_Directory to sPath
+//        End
+//        Get vFolderFormat sPath to sPath
+//
+//        Send DoCheckCreateInstSrvFile
+//        Send DoCheckCreateSrvAnyFile
+//
+//        // Create Windows Service:
+//        Send Cursor_Wait of Cursor_Control
+//        Move ('"' + (Trim(sServiceName)) + '"' * ('"' + sPath + CS_SrvAnyProgramName + '"')) to sParams
+////        Move ('"' + (Trim(sServiceName)) + '"' * ('"' + sProgramPath + sProgramName + '"')) to sParams
+//
+//        // Execute command & catch the output:
+//        Get ExternalProgramResult of ghoExternalProgramResult CS_InstSrvProgramName sParams sPath (&sValueArray) to iRetval
+//
+//        Send Cursor_Ready of Cursor_Control
+//
+//        Move (SizeOfArray(sValueArray)) to iItems
+//        Decrement iItems
+//        Move sValueArray[1] to sTmp
+//
+//        If (iRetval = 0 and (not(sTmp contains "Unable to find" ))) Begin
+//            For i from 1 to iItems
+//                Move sValueArray[i] to sTmp
+//                Move (sRetval + CR_LF + sTmp) to sRetval
+//            Loop
+//
+//            // Change registry for the newly created Windows service:
+//            Get Create (RefClass(cRegistry)) to hoRegistry
+//            Set phRootKey of hoRegistry to HKEY_LOCAL_MACHINE
+//            Get OpenKey of hoRegistry ("SYSTEM\CurrentControlSet\Services\" + Trim(sServiceName)) to bOpen
+//            If (bOpen = True) Begin
+//                Send WriteString of hoRegistry "Application" (sProgramPath + sProgramName)
+//                Send CloseKey of hoRegistry
+//            End
+//            Else Begin
+//                Move "" to sRetval
+//            End
+//
+//            Send Destroy of hoRegistry
+//        End
+//
+//        Function_Return sRetval
+//    End_Function
+//
+//    Function RemoveService2 String sServiceName Returns String
+//        String sPath sParams sTmp sRetval
+//        String[] sValueArray
+//        Integer iRetval i iItems
+//
+//        Move "" to sRetval
+//        If (IsDebuggerPresent()) Begin
+//            Get GetApplicationPath of ghoApplication to sPath
+//        End
+//        Else Begin
+//            Get_Current_Directory to sPath
+//        End
+//        Get vFolderFormat sPath to sPath
+//
+//        Send DoCheckCreateInstSrvFile
+//        Send DoCheckCreateSrvAnyFile
+//
+//        // Remove Windows Service:
+//        Send Cursor_Wait of Cursor_Control
+//        Move ('"' + Trim(sServiceName) + '"' * "REMOVE") to sParams
+//
+//        // Execute command & catch the output:
+//        Get ExternalProgramResult of ghoExternalProgramResult CS_InstSrvProgramName sParams sPath (&sValueArray) to iRetval
+//
+//        Send Cursor_Ready of Cursor_Control
+//
+//        Move (SizeOfArray(sValueArray)) to iItems
+//        Decrement iItems
+//        Move sValueArray[1] to sTmp
+//
+//        If (iRetval = 0) Begin
+//            For i from 1 to iItems
+//                Move sValueArray[i] to sTmp
+//                Move (sRetval + CR_LF + sTmp) to sRetval
+//            Loop
+//        End
+//
+//        Function_Return sRetval
+//    End_Function
+//
+//    // Returns an empty string if the passed sServiceName is running.
+//    // Else a string with an error message is returned.
+//    // This version of the function is using the Windows sc.exe program
+//    Function IsServiceRunning2 String sServiceName Returns String
+//        Integer iRetval i iItems
+//        Boolean bRunning
+//        String[] sValueArray
+//        String sParams sRetval sTmp
+//
+//        Move False to bRunning
+//        Move ""    to sRetval
+//
+//        Move ("Query" * ('"' + Trim(sServiceName) + '"')) to sParams
+//        Get ExternalProgramResult of ghoExternalProgramResult CS_SCProgram sParams "" (&sValueArray) to bRunning
+//        Move sValueArray[3] to sTmp
+//        Move (sTmp contains "STARTED") to bRunning
+//
+//        If (bRunning = False) Begin
+//            Move (SizeOfArray(sValueArray)) to iItems
+//            Decrement iItems
+//            Move sValueArray[1] to sTmp
+//
+//            If (iRetval = 0) Begin
+//                For i from 1 to iItems
+//                    Move sValueArray[i] to sTmp
+//                    Move (sRetval + CR_LF + sTmp) to sRetval
+//                Loop
+//            End
+//        End
+//
+//        Function_Return sRetval
+//    End_Function
+//
+//    // Returns an empty string if the passed sServiceName was started successfully.
+//    // Else a string with an error message is returned.
+//    // This version of the function is using the Windows sc.exe program
+//    Function StartService2 String sServiceName Returns String
+//        String sRetval
+//
+//        Get _StartStopServiceSUB2 sServiceName True to sRetval
+//
+//        Function_Return sRetval
+//    End_Function
+//
+//    // Returns an empty string if the passed sServiceName was stopped successfully.
+//    // Else a string with an error message is returned.
+//    // This version of the function is using the Windows sc.exe program
+//    Function StopService2 String sServiceName Returns String
+//        String sRetval
+//
+//        Get _StartStopServiceSUB2 sServiceName False to sRetval
+//
+//        Function_Return sRetval
+//    End_Function
+//
+//    // Helper function.
+//    Function _StartStopServiceSUB2 String sServiceName Boolean bStart Returns String
+//        Integer iRetval i iItems
+//        Boolean bRunning
+//        String[] sValueArray
+//        String sParams sRetval sTmp
+//
+//        Move False to bRunning
+//        Move ""    to sRetval
+//
+//        If (bStart = True) Begin
+//            Move ("start" * ('"' + Trim(sServiceName) + '"')) to sParams
+//        End
+//        Else Begin
+//            Move ("stop" * ('"' + Trim(sServiceName) + '"')) to sParams
+//        End
+//
+//        Send Cursor_Wait of Cursor_Control
+//        Get ExternalProgramResult of ghoExternalProgramResult CS_SCProgram sParams "" (&sValueArray) to bRunning
+//        Send Cursor_Ready of Cursor_Control
+//
+//        Move sValueArray[3] to sTmp
+//        Move (sTmp contains "STARTED") to bRunning
+//
+//        If (bRunning = False) Begin
+//            Move (SizeOfArray(sValueArray)) to iItems
+//            Decrement iItems
+//            Move sValueArray[1] to sTmp
+//
+//            If (iRetval = 0) Begin
+//                For i from 1 to iItems
+//                    Move sValueArray[i] to sTmp
+//                    Move (sRetval + CR_LF + sTmp) to sRetval
+//                Loop
+//            End
+//        End
+//
+//        Function_Return sRetval
+//    End_Function
+End_Class
+
+#IFNDEF ghoWindowsServiceFunctions
+    Global_Variable Integer ghoWindowsServiceFunctions
+#ENDIF
+
+Object oWindowsServiceFunctions is a cWindowsServiceFunctions
+    Move Self to ghoWindowsServiceFunctions
+End_Object

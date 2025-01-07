@@ -1,0 +1,115 @@
+Use Windows.pkg
+Use MapiDllCalls.Pkg
+
+//Define BCM_ADMSETSHIELD for |CI$160C
+
+Object oYesNoBox_Adm is a ModalPanel
+    Set Size to 97 211
+    Set Label to "Question"
+    Set piMinSize to 89 211
+    Set Location to 2 2
+    Set Maximize_Icon to False
+    Set Minimize_Icon to False 
+    Set Sysmenu_Icon to False
+    Set Border_Style to Border_Normal
+    Set Locate_Mode to CENTER_ON_SCREEN
+    Set Color to clWhite
+    
+    Property Integer piRetval MBR_Cancel
+     
+    Object oBitmap is a BitmapContainer
+        Set Size to 24 28
+        Set Location to 16 9
+        Set Bitmap to "ButtonHelp.bmp"
+        Set Border_Style to Border_None
+        Set Color to clWhite
+    End_Object
+
+    Object oText_tb is a TextBox
+        Set Size to 59 167
+        Set Location to 10 40 //16 40
+        Set Auto_Size_State to False
+        Set Justification_Mode to JMode_Left
+        Set Color to clWhite
+        Set Label to "Some question text to be put here, that can be multiple lines long..."
+    End_Object
+    
+    Object oLowerBackground_tb is a Container3d
+        Set Size to 26 340
+        Set Location to 72 0
+        Set Color to clBtnFace
+        Set peAnchors to anBottomLeftRight
+        Set Border_Style to Border_None
+
+        Object oYes_Btn is a Button
+            Set Size to 13 50
+            Set Label to C_$Yes
+            Set Location to 6 48
+    
+            Procedure OnClick          
+                Set piRetval to MBR_Yes
+                Send Close_Panel
+            End_Procedure
+    
+            Procedure Page_Object Integer iPage
+                Forward Send Page_Object iPage
+                Set pbShield to True
+            End_Procedure
+        
+        End_Object
+    
+        Object oNo_Btn is a Button
+            Set Size to 13 50
+            Set Label to C_$No
+            Set Location to 6 102
+    
+            Procedure OnClick
+                Set piRetval to MBR_No
+                Send Close_Panel
+            End_Procedure
+    
+        End_Object
+
+        Object oCancel_Btn is a Button
+            Set Size to 13 50
+            Set Label to C_$Cancel
+            Set Location to 6 156
+    
+            Procedure OnClick
+                Set piRetval to MBR_Cancel
+                Send Close_Panel
+            End_Procedure
+    
+        End_Object
+
+    End_Object
+
+End_Object
+
+// Public access method
+//  YesNo_BoxAdm {sMessage} [, {sCaption} [, {Default-Button} ] ] ))
+Function YesNo_BoxAdm String sMessage String sCaption Returns Integer
+    Handle ho
+    Integer iRetval
+    String sCR
+    Boolean bIsDebugMode
+    
+    Move (Character(13)+ Character(10)) to sCR
+    Move (oYesNoBox_Adm(Self)) to ho
+    Move (IsDebuggerPresent()) to bIsDebugMode
+    If (bIsDebugMode = True) Begin
+        Append sMessage "\nIf you select to run in 'Admin Mode' the debugger will exit. Continue?"
+    End
+    Move (Replaces("\n", sMessage, sCR)) to sMessage
+    Set Label of (oText_tb(ho)) to sMessage
+    If (sCaption <> "") Begin
+        Set Label of ho to sCaption
+    End  
+    Send Deactivate of (oBitmap(ho)) False
+    Send Activate   of (oBitmap(ho)) True
+    
+    Send Popup of ho
+    
+    Get piRetval of ho to iRetval
+    Function_Return iRetval    
+End_Function

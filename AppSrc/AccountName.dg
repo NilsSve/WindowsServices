@@ -1,0 +1,114 @@
+Use Windows.pkg
+Use cCJGridPromptList.pkg
+Use cCJGridColumn.pkg
+Use cCJGridColumnRowIndicator.pkg
+Use cRDCModalPanel.pkg
+Use WinServiceLanguageConstants.inc
+
+Object oAccountNames_dg is a cRDCModalPanel
+    Set Size to 128 191
+    Set Label to "Sample of User Accounts"
+    Set Label to CS_WSU_SampleUserAccounts
+    Set piMinSize to 89 157
+    Set Location to 2 1
+    Set Icon to "UserAccounts.ico"
+
+    Object oAccountNames_grd is a cCJGridPromptList
+        Set Size to 86 177
+        Set Location to 4 7
+        Set peAnchors to anAll
+        Set pbShowFooter to True
+
+        Property String[] psAccountNamesArray
+
+        Object oCJGridColumnRowIndicator1 is a cCJGridColumnRowIndicator
+            Set piWidth to 34
+        End_Object
+
+        Object oAccountName_Col is a cCJGridColumn
+            Set piWidth to 323
+            Set psCaption to "Account Name *)"
+            Set psCaption to CS_WSUAccountName
+        End_Object
+
+        Procedure Activating
+            Forward Send Activating
+            Send Cursor_Wait of Cursor_Control
+            Send DoFillGrid
+            Send Cursor_Ready of Cursor_Control
+        End_Procedure
+
+        Procedure DoFillGrid
+            Integer iCount iItems
+            Integer iAccountName_Col
+            String[] sAccountNamesArray
+            Handle hoDataSource hoCol
+            tDataSourceRow[] TheData
+
+            Get phoDataSource                  to hoDataSource
+            Get DataSource of hoDataSource     to TheData
+            Get psAccountNamesArray            to sAccountNamesArray
+            Get piColumnId of oAccountName_Col to iAccountName_Col
+
+            Move (SizeOfArray(sAccountNamesArray)) to iItems
+            Decrement iItems
+            For iCount from 0 to iItems
+                Move sAccountNamesArray[iCount] to TheData[iCount].sValue[iAccountName_Col]
+            Loop
+
+            // Initialize Grid with new data
+            Send InitializeData TheData
+
+            Send MovetoFirstRow
+            Get ColumnObject iAccountName_Col to hoCol
+            Set psFooterText of hoCol         to ("Number of Accounts:" * String(iItems + 1))
+            Set psFooterText of hoCol         to (CS_WSUNumberOfAccounts * String(iItems + 1))
+        End_Procedure
+
+        On_Key kEnter Send KeyAction of oOK_Btn
+    End_Object
+
+    Object oOK_Btn is a Button
+        Set Label to "&OK"
+        Set Label to C_$OK
+        Set Location to 108 80
+        Set peAnchors To anBottomRight
+
+        Procedure OnClick
+            Send OK of oAccountNames_grd
+        End_Procedure
+
+    End_Object
+
+    Object oCancel_Btn is a Button
+        Set Label to "&Cancel"
+        Set Label to C_$Cancel
+        Set Location to 108 135
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+            Send Close_Panel
+        End_Procedure
+
+    End_Object
+
+    Object oInfo_tb is a TextBox
+        Set Auto_Size_State to False
+        Set Size to 15 177
+        Set Location to 93 7
+        Set Label to "*) Note that there might be other accounts available"
+        Set Label to CS_WSUMightBeOtherAccounts
+        Set Justification_Mode to JMode_Left
+        Set peAnchors to anBottomLeftRight
+    End_Object
+
+    Procedure Activating
+        String[] sAccountNamesArray
+        Get EnumUserProfilesRegistry of ghoWindowsServiceFunctions to sAccountNamesArray
+        Set psAccountNamesArray of oAccountNames_grd to sAccountNamesArray
+    End_Procedure
+
+    On_Key Key_Alt+Key_O Send KeyAction of oOK_Btn
+    On_Key Key_Alt+Key_C Send KeyAction of oCancel_Btn
+    On_Key kCancel       Send KeyAction of oCancel_Btn
+End_Object

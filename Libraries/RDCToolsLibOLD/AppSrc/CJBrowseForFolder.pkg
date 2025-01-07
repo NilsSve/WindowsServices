@@ -1,0 +1,57 @@
+//****************************************************************************
+// $Module type: Package
+// $Module name: CJBrowseForFolder.pkg
+// $Author     : Nils G. Svedmyr, RDC Tools International
+// Created     : 2012-07-22 @ 11:11
+//
+// Description : Browse for folder (CodeJock) An initial folder path and filter
+//               string can be passed to the function.
+//               Pass True/False as the last parameter to control if the
+//               "Make New Folder" button should be visible or not.
+//               Returns the folder including path, if the OK button is pressed,
+//               else the string returned is empty.
+//
+// $Rev History:
+//    2012-07-22  Module header created
+//****************************************************************************
+Use cSigCJCommonDialog.pkg
+Use GlobalFunctionsProcedures.pkg
+
+Function CJBrowseForFolder Global String sInitDir String sFilter String sDialogTitleText Boolean bShowNewFolderButton Returns String
+    Handle ho
+    Integer iRetval
+    String sFileName
+
+    Get Create (RefClass(cSigCJCommonDialog)) to ho
+    If (sInitDir <> "") Begin
+        Move (ToANSI(sInitDir)) to sInitDir
+        Set ComFileName of ho to sInitDir
+    End
+
+    // Filter using pipe character to seperate e.g. "Text (*.txt)|*.txt|Pictures (*.bmp;*.ico)|*.bmp;*.ico"
+    If (sFilter <> "") Begin
+        Set ComFilter of ho to sFilter
+    End
+
+    If (sDialogTitleText <> "") Begin
+        Move (ToANSI(sDialogTitleText)) to sDialogTitleText
+        Set ComDialogTitle of ho to (sDialogTitleText - ":" * sInitDir)
+    End
+
+    // Normally a "Make New Folder" button is displayed in the control.
+    // To _not_ have it appear - pass a FALSE to this function
+    If (bShowNewFolderButton = False) Begin
+        Set ComFlags of ho to OLExtpBFNoNewFolderButton
+    End
+
+    // *** Display CodeJock browse for folder dialog:
+    Get ComShowBrowseFolder of ho to iRetval
+
+    // Was the OK button pressed?
+    If (iRetval = OLExtpTaskButtonOk) Begin
+        Get ComFileName of ho to sFileName
+    End
+
+    Send Destroy of ho
+    Function_Return sFileName
+End_Function

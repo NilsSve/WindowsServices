@@ -1,0 +1,73 @@
+Use DataDict.pkg
+
+Use cCryptographer.pkg
+// This is to ensure the encrypt/decrypt logic works for other DF versions than 18 or later.
+Define MS_ENHANCED_PROV             for "Microsoft Enhanced Cryptographic Provider v1.0"
+Define CS_WinServiceHashString      for "zx!2139(LI0+?ips9"
+
+Open WinService
+
+Register_Object WinService_sl
+
+Class cWinServiceDataDictionary is a DataDictionary
+
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set Main_File to WinService.File_Number
+
+        Set Foreign_Field_Option DD_KEYFIELD DD_NOPUT to True
+        Set Foreign_Field_Option DD_KEYFIELD DD_FINDREQ to True
+        Set Foreign_Field_Option DD_INDEXFIELD DD_NOPUT to True
+        Set Foreign_Field_Option DD_DEFAULT DD_DISPLAYONLY to True
+
+        Set Field_Prompt_Object Field WinService.Program_Name to WinService_sl
+
+        Set Field_Prompt_Object Field WinService.Service_Name to WinService_sl
+
+    End_Procedure
+
+    Procedure Field_Defaults
+        Forward Send Field_Defaults
+    End_Procedure
+
+    // If the password has changed, we will automatically encrypt it
+    // before saving it to the database.
+    // Note that it is up to the program to decrypt the password before
+    // passing it to the cWindowsServiceFunctions class CreateService function.
+    Procedure Update
+        Boolean bPasswordChange
+        Handle hoCryptographer
+        String sValue sPw
+
+        Forward Send Update
+        Get Field_Changed_State Field WinService.pw to bPasswordChange
+        If (bPasswordChange = True) Begin
+            Get Create (RefClass(cCryptographer)) to hoCryptographer
+            Set psProvider of hoCryptographer to MS_ENHANCED_PROV
+            Move (Trim(WinService.Pw)) to sPw
+            Get Encrypt of hoCryptographer CS_WinServiceHashString sPw to sValue
+            Move sValue to WinService.Pw
+            Send Destroy of hoCryptographer
+        End
+//        If (Trim(WinService.AccountName) = CS_WinserviceUserAccountText) Begin
+//            Move "" to WinService.AccountName
+//        End
+    End_Procedure
+
+    Procedure Backout
+        Boolean bPasswordChange
+        Forward Send Backout
+        Get Field_Changed_State Field WinService.pw to bPasswordChange
+    End_Procedure
+
+    Procedure OnPostFind Integer eMessage Boolean bFound
+        Forward Send OnPostFind eMessage bFound
+    End_Procedure
+
+End_Class
+
+
+#IFDEF Is$WebApp
+#ELSE
+    Use WinService.sl
+#ENDIF

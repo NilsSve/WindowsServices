@@ -1,0 +1,9 @@
+#REPLACE FILE1 WinService
+#REPLACE WinService.Recnum |FN1,0
+#REPLACE WinService.Program_Name |FS1,1
+#REPLACE WinService.Service_Name |FS1,2
+#REPLACE WinService.Program_Path |FS1,3
+#REPLACE WinService.Description |FS1,4
+#REPLACE WinService.AccountName |FS1,5
+#REPLACE WinService.Pw |FS1,6
+#REPLACE WinService.CmdLineParam |FS1,7

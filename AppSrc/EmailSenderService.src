@@ -1,0 +1,43 @@
+Use DfAllEnt.pkg
+Use seq_chnl.pkg
+Use cApplicationDFService.pkg
+Use DFService.pkg
+Use ChilkatAx-9.5.0-win32.pkg
+Use Yankee.pkg
+
+Object oApplication is a cApplicationDFService
+    Set psCompany to "Yankee Corporation"
+    Set psProduct to "Email Service"
+    Set psVersion to "2022"
+    Set psProgram to "Email Service"
+    
+    Property String gpsWorkspace         ""
+    Property String psEmailDocPath       "..\Email"
+    Property String psLocation           ""
+    Property String psUserEmail          ""
+    Property String psCurrentPrinter     ""
+    Property String gpsFullName          ""
+    Property String gpsUserName          ""
+    Property String gpsLoginID           "GM"
+    
+    Property Boolean pbReportDone False
+    
+    Send LogMessage "cApplicationDFService is getting created."
+    
+    #Include Login.pkg
+    #Include oEmailSenderService.pkg
+
+    Send LogMessage "Before End_Object ghoApplication"
+End_Object
+
+Procedure StartEmailService
+    Handle hoService
+
+    Send LogMessage of ghoApplication "In StartEmailService"
+
+    Move (oEmailSenderService(ghoApplication)) to hoService
+    If (hoService <> 0) Begin
+        Send DoProcess of hoService        
+    End
+End_Procedure
+Send StartEmailService

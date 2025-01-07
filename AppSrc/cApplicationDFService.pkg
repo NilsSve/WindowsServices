@@ -1,0 +1,184 @@
+Use cApplication.pkg
+Use oCommandLinePanelObject.pkg
+Use cWindowsServiceFunctions.pkg
+Use cErrorLog.pkg
+
+#IFNDEF ghoConnection
+    Global_Variable Handle ghoConnection
+#ENDIF                                    
+
+// This class implements a visible object (Panel) that displays a message
+// to the user that the program must be passed a parameter on the command line
+// to run.
+// The purpose are for making DataFlex programs that are to be run as Windows Services.
+// So to run the program that uses this class, a parameter must be passed on
+// the command line for the program to be run as a service, else a message is shown
+// to do so. This eliminates having the program accidently run without the possibility
+// to close it - except for using e.g. Windows Task Explorer to end it.
+Class cApplicationDFService is a cApplication
+
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Property Boolean pbCommandLineParameter True
+        Property String  psCommandLineText ""
+        Property Boolean pbDebugMode False
+
+        Set pbPreserveEnvironment to False
+
+        Send Destroy of Error_Object_Id
+        Object Error_Info_Object is a cErrorlog
+            Move Self to Error_Object_Id
+        End_Object
+
+    End_Procedure
+
+    Procedure End_Construct_Object
+        String sName
+        Send OnCreate
+        // note that psAutoOpenWorkspace will get cleared of OnCreate attempts to open a workspace
+        Get psAutoOpenWorkspace to sName
+        If (sName <> "") Begin
+            Send DoOpenWorkspace sName
+        End
+        Forward Send End_Construct_Object
+    End_Procedure
+    
+    Procedure LogMessage String sText
+        Send LogMessage of Error_Object_Id sText
+    End_Procedure
+
+    Procedure Exit_Application
+        Send LogMessage CS_WSUExitServiceExited
+        Forward Send Exit_Application
+    End_Procedure
+
+    Procedure OnCreate
+        Handle hoCmdLine 
+        Integer iNumArgs
+        String  sText sProgramName sPath sArgument
+        Boolean bIsInstalledAsService
+
+        Get ApplicationPath of ghoWindowsServiceFunctions to sPath
+        Get Module_Name              to sProgramName
+        Move (sProgramName + ".exe") to sProgramName
+        Get IsProgramInstalledAsService of ghoWindowsServiceFunctions sPath sProgramName to bIsInstalledAsService
+        Get phoCommandLine to hoCmdLine
+        Get CountOfArgs of hoCmdLine to iNumArgs
+
+        Set pbDebugMode to False  
+        Set pbCommandLineParameter to False
+        If (iNumArgs <> 0) Begin   
+            // Accept a "/debug" or "-debug" on the commandline to set the service-program
+            // in debug mode. It will then jump out (exit program) after the first DFService loop is finished.
+            Get Argument of hoCmdLine 1 to sArgument
+            If (Lowercase(sArgument) = ("/" + String(CS_DebugMode))) Begin
+                Set pbDebugMode to True
+            End
+            Else If (Lowercase(sArgument) = ("-" + String(CS_DebugMode))) Begin
+                Set pbDebugMode to True
+            End
+            Set psCommandLineText      to ""
+            Set pbCommandLineParameter to True // Then start program to run as a service without any user interface.
+        End
+        Else Begin
+            If (bIsInstalledAsService = False) Begin
+                Move CS_WSUDFServiceText1 to sText
+                Append sText CS_WSUDFServiceText2
+                Append sText CS_WSUDFServiceText3 " " sProgramName " " CS_WSUDFServiceText4
+                Append sText CS_WSUDFServiceText5
+            End
+            If (bIsInstalledAsService = True) Begin
+                Move CS_WSUDFServiceText6 to sText
+            End
+
+            Set psCommandLineText      to sText
+            Set pbCommandLineParameter to False
+
+            // Message in oCommandLinePanelObject that displays a panel
+            // with info text about the program.
+            Send ShowMainCommandLinePanel bIsInstalledAsService
+        End
+    End_Procedure
+
+    // send after a workspace is successfully opened and connected
+    { MethodType=Event }
+    Procedure OnWorkspaceOpened
+    End_Procedure
+    
+    Procedure DoOpenWorkspace String sWorkspace
+        // Tries to open in this order:
+        // 1) if absolute path, use that; otherwise
+        // 2) try to open in the path of the EXE; otherwise
+        // 3) load it via the Registered list
+        
+        Integer eOpened
+        String sError sWSFile
+        Handle hoWorkspace
+        Boolean bChangingWorkspace
+        
+        // As soon as an open is attempted, the application's object psAutoOpenWorkspace property
+        // is cleared. This way any attempt to manually open a workspace during its construction,
+        // which includes OnCreate, will stop the object from attempting to automatically open the
+        // workspace. This was added to make psAutoOpenWorkspace compatible with older applications.
+        // Typically these application will open a workspace in OnCreate. If this happens we assume
+        // that there should be no automatic opening of a worskpace.
+        Set psAutoOpenWorkspace to ""
+        
+        Get phoWorkspace to hoWorkspace
+        
+        Get pbWorkspaceOpened of hoWorkspace to bChangingWorkspace
+        If (bChangingWorkspace and ghoConnection) Begin
+            Send AutoDisconnect
+        End
+        
+        Get OpenWorkspaceFile of hoWorkspace sWorkspace to eOpened
+        If (eOpened = wsWorkspaceFileNotFound) Begin
+            If (IsRegistered(hoWorkspace, sWorkspace) =True) Begin
+                Get OpenWorkspace of hoWorkspace sWorkspace to eOpened
+            End
+        End
+        If (eOpened <> wsWorkspaceOpened) Begin
+            Get OpenWorkspaceErrorMessage of hoWorkspace eOpened to sError
+            Get psWorkspaceWSFile of hoWorkspace to sWSFile
+            Error DFERR_CAPPLICATION (SFormat(C_$TheProgramCannotRun, sWorkspace) + ":\n\n" + If(sWSFile<>"",sWSfile+"\n\n","") +sError)
+            Abort
+        End
+        Else Begin
+            Send AutoConnect
+            Send OnWorkspaceOpened
+        End
+    End_Procedure
+    
+    // Returns the full path of the Application (no trailing "\")
+    Function ApplicationPath Returns String
+        String sApplicationFileName sPath
+        Integer iNumChars iRetval
+
+        Move (Repeat(Character(0), 1024))    to sApplicationFileName
+        Move (GetModuleFileName(0, AddressOf(sApplicationFileName), 1024)) to iNumChars
+        Move (CString(sApplicationFileName)) to sApplicationFileName
+        Move (PathRemoveFileSpec(AddressOf(sApplicationFileName))) to iRetval
+        Move (CString(sApplicationFileName)) to sPath
+
+        Function_Return sPath
+    End_Function
+
+    //Doc/ Type=Property Interface=Private Obsolete=True
+    Function Application_Name Returns String
+        Function_Return "SYSTEM"
+    End_Function
+
+    //Doc/ Type=Property Interface=Private
+    Function Module_Name Returns String
+        String sApplicationFileName sFileName
+        Integer iNumChars
+
+        Move (Repeat(Character(0), 1024))    to sApplicationFileName
+        Move (GetModuleFileName(0, AddressOf(sApplicationFileName), 1024)) to iNumChars
+        Move (CString(sApplicationFileName)) to sApplicationFileName
+        Get ParseFileName sApplicationFileName to sFileName
+        Function_Return sFileName
+    End_Function
+
+End_Class

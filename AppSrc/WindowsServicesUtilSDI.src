@@ -1,0 +1,717 @@
+// This program is a more simplified version of the WindowsServicesUtil.src,
+// as it does not use a database and instead uses an ini-file to store the
+// Windows service name and other parameters.
+//
+// $Author     : Nils G. Svedmyr, RDC Tools International, <mailto:support@rdctools.com>
+// Web-site    : http://www.rdctools.com
+// The code is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// This is free software; you can redistribute it and/or modify it under the terms of the
+// GNU Lesser General Public License.
+// License: LGPLv3 - GNU LESSER GENERAL PUBLIC LICENSE Version 3 - http://www.gnu.org/licenses/lgpl.txt
+//
+Use DFAllEnt.pkg
+Use cCJStandardCommandBarSystem.pkg
+
+Use cDigitalSoftwareCertificate.pkg
+
+#IFNDEF CS_ServiceLogFile
+    Define CS_ServiceLogFile for "ServiceErrorLog.txt"
+#ENDIF
+
+Object oDigitalSoftwareCertificate is a cDigitalSoftwareCertificate
+    Move Self to ghoDigitalSoftwareCertificate
+
+    // Set pbWarnIfNotDigitallySigned = True if you like to have a warning when the
+    // program is started, but the program has not been digitally signed.
+    // Only applies when run outside the Studio.
+    Set pbWarnIfNotDigitallySigned to False
+
+    // This message does the actual checking for a valid digital certificate.
+    // If the program has been tampered with e.g. it has been infected by a virus,
+    // the user will get a warning and the program will be aborted.
+    Send ValidateProgramOnStartup
+
+End_Object
+
+Use cWindowsServiceFunctions.pkg
+
+Define CS_DFTestProgram     for "DFServiceProgram1.exe"
+Define CS_DFTestServiceName for "DF Test Service"
+
+Object oHtmlHelp is a cHtmlHelp
+End_Object
+
+Object oApplication is a cApplication
+    Set peHelpType to htHtmlHelp
+    Set psCompany to "RDC Tools International"
+    Set psProduct to "Windows Services Util"
+    Set psAutoOpenWorkspace to ""
+
+    // Sets the cApplication psVersion property.
+    Procedure ExtractVersionInfo
+        Boolean bIncluded
+        Handle hoVersionInfo
+        String sVersion
+
+        Get phoVersionInfo to hoVersionInfo
+        Get pbIncluded of hoVersionInfo to bIncluded
+        If (bIncluded = True) Begin
+            Move (piVersionMajor(hoVersionInfo)) to sVersion
+            Move (sVersion + "." + String(piVersionMinor(hoVersionInfo)))   to sVersion
+            Move (sVersion + "." + String(piVersionRelease(hoVersionInfo))) to sVersion
+            Set psVersion to sVersion
+        End
+    End_Procedure
+
+    // This will create other files used by the program, if they doesn't exist.
+    Procedure OnCreate
+        Integer eOpened
+        String sPath
+
+        Forward Send OnCreate
+        Send ExtractVersionInfo
+
+        Get OpenWorkspaceFile of (phoWorkspace(ghoApplication)) "config.ws" to eOpened
+        If (eOpened <> wsWorkspaceOpened) Begin
+            Get ApplicationPath of ghoWindowsServiceFunctions     to sPath
+            Set psHome          of (phoWorkspace(ghoApplication)) to sPath
+            Set psProgramPath   of (phoWorkspace(ghoApplication)) to sPath
+            Set psDataPath      of (phoWorkspace(ghoApplication)) to sPath
+            Set psFileList      of (phoWorkspace(ghoApplication)) to sPath
+            Set psHelpPath      of (phoWorkspace(ghoApplication)) to sPath
+            Set psBitmapPath    of (phoWorkspace(ghoApplication)) to sPath
+        End
+
+        // Check that files exists, else create them:
+        Send DoCheckFile "WindowsServicesUtilSDI.exe.manifest" "Resource:res_Install_ManifestFile"      False
+        Send DoCheckFile "iTunesB.cjstyles"                   "Resource:res_Install_SkinFileB"          False
+        Send DoCheckFile "Codejock.SkinFramework.v16.3.1.ocx"  "Resource:res_Install_SkinOCXFile"       False
+
+    End_Procedure
+
+    // Check if the file exists in the Programs/Data folder (or current folder if no workspace used),
+    // else create it from memory as it has been compiled into the currents program:
+    Procedure DoCheckFile String sFileName String sResourceName Boolean bDataFile
+        String sPath
+        Boolean bExists
+
+        Get ApplicationPath of ghoWindowsServiceFunctions to sPath
+        If (bDataFile = True) Begin
+            Get psDataPath of (phoWorkspace(ghoApplication)) to sPath
+        End
+        Get vFolderFormat sPath to sPath
+        Move (sPath + sFileName) to sFileName
+        Get vFilePathExists sFileName to bExists
+
+        // Read from memory & create file on disk.
+        If (bExists = False) Begin
+            Send CreateFileFromMemory of ghoWindowsServiceFunctions sResourceName sFileName
+        End
+    End_Procedure
+
+    // Dummy message. It is here for the compiler to embed files as resources.
+    // into the program.
+    Procedure _DummyEmbedFiles
+        Include_Resource ..\AppSrc\WindowsServicesUtilSDI.exe.manifest as res_Install_ManifestFile Type DF_RESOURCE_TYPE_BINARY
+        Include_Resource ..\Programs\Codejock.SkinFramework.Unicode.v18.3.0.ocx as res_Install_SkinOCXFile Type DF_RESOURCE_TYPE_BINARY
+        Include_Resource ..\Programs\iTunesB.cjstyles as res_Install_SkinFile Type DF_RESOURCE_TYPE_BINARY
+    End_Procedure
+
+End_Object
+
+Use cCJSkinFramework.pkg
+
+Object oCJSkinFramework is a cCJSkinFramework
+    Set pbLoadPreference to True
+    Set psSkinFile to "iTunes.cjstyles"
+    Set psSkinIni to "Normalitunes.ini"
+End_Object
+
+Define CS_SkinFile       for "iTunes.cjstyles"
+Define CS_NormaliTunes   for "Normalitunes.ini"
+Define CS_NormaliTunes2  for "Normalitunes2.ini"
+Define CS_NormaliTunesG  for "Normalitunesg.ini"
+Define CS_NormaliTunesG2 for "Normalitunesg2.ini"
+
+#IF (Required_FMAC_Version >= 16)
+    Use cToolTipController.pkg
+    Object oToolTipController is a cToolTipController
+        Move Self to ghoToolTipController
+        Set piMaxWidth to 400
+        Set piDurationPopup to 14000    // 14 seconds, needed for long tooltips.
+        Set pbUsePrefix to True
+    End_Object
+#ENDIF
+
+Use oEditContextMenu.pkg
+#IF (Required_FMAC_Version >= 17)
+    Use oDEOEditContextMenu17.pkg
+#ENDIF
+
+Use cRDCTextbox.pkg
+Use cRDCGroup.pkg
+Use cRDCIniFileForm.pkg
+Use cRDCButton.pkg
+
+Object oMain is a BasicPanel
+    Set Label to "DataFlex Windows Services Manager (Simplified Version)"
+    Set peNeighborhood to nhPublic
+    Set Size to 233 431
+    Set Locate_Mode to Center_On_Screen
+
+    Object oCommandBarSystem is a cCJCommandBarSystem
+        Set pbTimerUpdate to True
+
+        Procedure OnCreateCommandBars
+            Handle hoOptions
+            Get OptionsObject to hoOptions
+            Forward Send OnCreateCommandBars
+        End_Procedure
+
+        Object oStatusBar is a cCJStatusBar
+
+            Object oStatusPane1 is a cCJStatusBarPane
+                Set piID to sbpIDIdlePane
+                Set pbStyleStretch to True
+            End_Object
+
+            Object oStatusPane2 is a cCJStatusBarPane
+                Set phoViewPane to Self
+                Set pbStyleStretch to True
+            End_Object
+
+        End_Object
+
+    End_Object
+
+    Function Statusbar_Id Returns Handle
+        Handle hId
+        Forward Get Statusbar_Id to hId
+        If (hId = 0) Begin
+            Move (oStatusBar(oCommandBarSystem)) to hId
+        End
+        Function_Return hId
+    End_Function
+
+    Object oInfo_Container3 is a Container3d
+        Set Size to 36 409
+        Set Location to 7 12
+        Set peAnchors to anTopLeftRight
+
+        Object oImageContainer_bmp is a BitmapContainer
+            Set Size to 26 33
+            Set Location to 4 15
+            Set Skip_State to True
+            Set Bitmap to "WndowsServices080N32.bmp"
+            Set Bitmap_Style to Bitmap_Stretch
+            Set Border_Style to Border_Normal
+
+            Procedure Mouse_Down Integer iWindowNumber Integer iPosition
+                Forward Send Mouse_Down iWindowNumber iPosition
+                Send Activate_About
+            End_Procedure
+        End_Object
+
+        Object oInfo_tb is a cRDCTextbox
+            Set Auto_Size_State to False
+            Set Size to 15 336
+            Set Location to 9 60
+            Set Label to "Setup a Program to Run as a Windows Service"
+            Set Justification_Mode to JMode_Left
+            Set FontWeight to fw_Bold
+            Set FontPointHeight to 16
+        End_Object
+
+    End_Object
+
+    Object oDFServiceProgram is a cRDCGroup
+        Set Size to 56 409
+        Set Location to 53 12
+        Set Label to "Program to be Run as a Windows Service"
+        Set peAnchors to anTopLeftRight
+
+        Object oProgramName_fm is a cRDCIniFileForm
+            Set Size to 13 270
+            Set Location to 16 60
+            Set Label to "Program Name"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set peAnchors to anTopLeftRight
+            Set Status_Help to "The name - including full path - to the program that is to be run as a Windows Service. (Red text denotes that the file is missing.)"
+            Set pbFileValue to True
+            Set psFileMask to "All Program Files *.exe|*.exe"
+            Set psPromptFileHeaderText to "Select a Program file"
+            Set psKey to "ProgramName"
+            Set psDefault to (psProgramPath(phoWorkspace(ghoApplication)) + "\" + CS_DFTestProgram)
+            Set pbWriteImmediately to True
+            Set Prompt_Button_Mode to PB_PromptOff
+        End_Object
+
+        Object oBrowse_btn is a cRDCButton
+            Set Location to 16 345
+            Set Label to "Browse..."
+            Set peAnchors to anTopRight
+            Set Status_Help to "Select the program that is to be setup to run as a Windows Service"
+
+            Procedure OnClick
+                String sProgramName sPath
+                Get Value of oProgramName_fm to sPath
+                Get ParseFolderName sPath    to sPath
+                Get vSelect_File "Programs *.exe|*.exe" "Please select a program" sPath to sProgramName
+                If (sProgramName <> "") Begin
+                    Set Value of oProgramname_fm to sProgramName
+                End
+            End_Procedure
+
+        End_Object
+
+        Object oServiceName_fm is a cRDCIniFileForm
+            Set Size to 13 270
+            Set Location to 32 60
+            Set Label to "Service Name"
+            Set Label_Col_Offset to 2
+            Set Label_Justification_Mode to JMode_Right
+            Set peAnchors to anTopLeftRight
+            Set Status_Help to "The name of the service as it will be references by the Windows Services Manager."
+            Set psDefault to CS_DFTestServiceName
+            Set psKey to "ServiceName"
+            Set pbWriteImmediately to True
+        End_Object
+
+        Object oViewLog_btn is a cRDCButton
+            Set Location to 32 345
+            Set Label to "View Logfile"
+            Set peAnchors to anTopRight
+            Set Status_Help to "View the service log file."
+
+            Procedure OnClick
+                String sPath
+                Boolean bExists
+
+                Get psDataPath of (phoWorkspace(ghoApplication)) to sPath
+                Get vFolderFormat sPath to sPath
+                Get vFilePathExists (sPath + CS_ServiceLogFile) to bExists
+                If (bExists = True) Begin
+                    Runprogram Shell Background (sPath + CS_ServiceLogFile)
+                End
+                Else Begin
+                    Send Info_Box "The logfile doesn't exist"
+                End
+            End_Procedure
+
+        End_Object
+
+    End_Object
+
+    Object oServicesFunctions_grp is a cRDCGroup
+        Set Size to 56 409
+        Set Location to 118 12
+        Set Label to "Windows Services Functions"
+        Set peAnchors to anTopLeftRight
+
+        Object oCreateService_btn is a cRDCButton
+            Set Size to 14 73
+            Set Location to 23 10
+            Set Label to "Create as Service"
+            Set Status_Help to "Sets up the selected program above as a Windows Service."
+
+            Procedure OnClick
+                String sPath sServiceName sProgramName sRetval
+                Boolean bExists
+
+                Get Value of oProgramName_fm to sProgramName
+                Get vFilePathExists sProgramName to bExists
+                If (bExists = False) Begin
+                    Send Info_Box ("The program:\n" * sProgramName + "\ndoesn't exist. Cannot continue.")
+                    Procedure_Return
+                End
+
+                Get ParseFolderName sProgramName to sPath
+                Get vFolderFormat sPath to sPath
+                Get ParseFileName   sProgramName to sProgramName
+                Get Value of oServiceName_fm to sServiceName
+                If (sServiceName = "") Begin
+                    Send Info_Box "Please enter a name for the Service Name"
+                    Procedure_Return
+                End
+
+                Get CreateService of ghoWindowsServiceFunctions sServiceName sProgramName sPath to sRetval
+
+                If (sRetval <> "") Begin
+                    If (not(sRetval contains "Error")) Begin
+                        Move (sRetval * "\n\nTo use the program as a service, a trusted user (account) with read and write rights to the folders were the data is put. Please click the 'Edit' button and adjust.") to sRetval
+                    End
+                    Send Info_Box sRetval
+                End
+                Else Begin
+                    Send Info_Box "Sorry, the service couldn't be created."
+                End
+            End_Procedure
+
+// Can't Open Service!openservice(): The Specified Service Does Not Exist As An Installed Service.
+
+             Procedure DoEnable
+                String sServiceName sRetval sProgramName
+                Boolean bExists
+
+                Move "" to sRetval
+                Get Value of oProgramName_fm to sProgramName
+                Get vFilePathExists sProgramName to bExists
+                If (bExists = False) Begin
+                    Set Enabled_State to False
+                    Procedure_Return
+                End
+
+                Get Value of oServiceName_fm to sServiceName
+                If (sServiceName <> "") Begin
+                    Get IsServiceRunning of ghoWindowsServiceFunctions sServiceName to sRetval
+                End
+                Set Enabled_State to (sRetval contains CS_ServiceNotOpen)
+             End_Procedure
+
+        End_Object
+
+        Object oEditService_btn is a cRDCButton
+            Set Location to 23 89
+            Set Label to "Edit"
+            Set Status_Help to "Edit the settings for a created Windows Service"
+
+            Procedure OnClick
+                tNSSMWinService NSSMWinService
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Send EditService of ghoWindowsServiceFunctions NSSMWinService
+            End_Procedure
+
+             Procedure DoEnable
+                String sServiceName sRetval
+
+                Get Value of oServiceName_fm to sServiceName
+                Get IsServiceRunning of ghoWindowsServiceFunctions sServiceName to sRetval
+                Set Enabled_State to (sRetval = CS_ServiceRunning or sRetval = CS_ServiceStopped)
+             End_Procedure
+
+             Procedure DoEnable
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Get IsServiceRunning of ghoWindowsServiceFunctions NSSMWinService to NSSMReply
+                Set Enabled_State to (NSSMReply.iRetval = 0)
+             End_Procedure
+
+        End_Object
+
+        Object oStatusService_btn is a cRDCButton
+            Set Size to 14 50
+            Set Location to 14 146
+            Set Label to "Status"
+            Set Status_Help to "Shows the Windows Service Status"
+
+            Procedure OnClick
+                String sServiceName sRetval
+
+                Get Value of oServiceName_fm to sServiceName
+                Get IsServiceRunning of ghoWindowsServiceFunctions sServiceName to sRetval
+                Send Info_Box sRetval
+            End_Procedure
+
+        End_Object
+
+        Object oReStartService_btn is a cRDCButton
+            Set Size to 14 50
+            Set Location to 31 146
+            Set Label to "Restart"
+            Set Status_Help to "Restarts the Windows Service"
+            Set pbAutoEnable to True
+
+            Procedure OnClick
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Send RestartService of ghoWindowsServiceFunctions NSSMWinService
+            End_Procedure
+
+             Procedure DoEnable
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Get IsServiceRunning of ghoWindowsServiceFunctions NSSMWinService to NSSMReply
+                Set Enabled_State to (NSSMReply.iRetval = 0)
+             End_Procedure
+
+        End_Object
+
+        Object oStartService_btn is a cRDCButton
+            Set Size to 14 50
+            Set Location to 14 203
+            Set Label to "Start"
+            Set Status_Help to "Starts the Windows Service"
+            Set pbAutoEnable to True
+
+            Procedure OnClick
+                Integer iRetval
+                String sProgramName
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get value of oProgramName_fm to sProgramName
+                Get IsProgramRunning of ghoWindowsServiceFunctions sProgramName to iRetval
+                If (iRetval = CI_TasklistRunAsService) Begin
+                    Send Stop_Box "No that won't work! The program is already installed and started under another Service Name. Check with the Windows Services Manager and see if you can find the other service name the program is run as."
+                    Procedure_Return
+                End
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Send StartService of ghoWindowsServiceFunctions NSSMWinService
+            End_Procedure
+
+             Procedure DoEnable
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Get IsServiceRunning of ghoWindowsServiceFunctions NSSMWinService to NSSMReply
+                Set Enabled_State to (NSSMReply.sRetval = CS_ServiceStopped)
+             End_Procedure
+
+        End_Object
+
+        Object oStopService_btn is a cRDCButton
+            Set Size to 14 50
+            Set Location to 31 203
+            Set Label to "Stop"
+            Set Status_Help to "Stops the Windows Service"
+            Set pbAutoEnable to True
+
+            Procedure OnClick
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Send StopService of ghoWindowsServiceFunctions NSSMWinService
+            End_Procedure
+
+             Procedure DoEnable
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+                Boolean bIsInstalledAsService
+
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Get IsServiceRunning of ghoWindowsServiceFunctions NSSMWinService to NSSMReply
+                Get IsProgramInstalledAsService of ghoWindowsServiceFunctions NSSMWinService.sProgramPath NSSMWinService.sProgramName to bIsInstalledAsService
+                Set Enabled_State to (NSSMReply.sRetval <> CS_ServiceStopped and bIsInstalledAsService = True)
+             End_Procedure
+
+        End_Object
+
+        Object oRemoveService_btn is a cRDCButton
+            Set Size to 14 50
+            Set Location to 23 260
+            Set Label to "Remove"
+            Set Status_Help to "Removes the Windows Service"
+
+            Procedure OnClick
+                tNSSMWinService NSSMWinService
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Send RemoveService of ghoWindowsServiceFunctions NSSMWinService
+            End_Procedure
+
+             Procedure DoEnable
+                tNSSMWinService NSSMWinService
+                tNSSMReply NSSMReply
+
+                Get Fill_NSSMWinService False to NSSMWinService
+                Get IsServiceRunning of ghoWindowsServiceFunctions NSSMWinService to NSSMReply
+                Set Enabled_State to (NSSMReply.iRetval = 0) //(NSSMReply.sRetval = CS_ServiceRunning or NSSMReply.sRetval = CS_ServiceStopped)
+             End_Procedure
+
+        End_Object
+
+        Object oWindowsServiceManager_btn is a cRDCButton
+            Set Size to 30 50
+            Set Location to 14 345
+            Set Label to "Run Windows Services Manager"
+            Set Status_Help to "Run Windows Service Manager program, that starts, stops and configures Windows services"
+            Set peAnchors to anTopRight
+            Set MultiLineState to True
+
+            Procedure OnClick
+                String sServiceName sRetval
+
+                Get Value of oServiceName_fm to sServiceName
+                Get IsServiceRunning of ghoWindowsServiceFunctions sServiceName to sRetval
+                If (sRetval = CS_ServiceRunning) Begin
+                    Send Info_Box ("Look for a service named:\n" + sServiceName)
+                End
+                Send StartWindowsServiceManager of ghoWindowsServiceFunctions
+            End_Procedure
+
+        End_Object
+
+        Object oLineControl1 is a LineControl
+            Set Size to 42 1
+            Set Location to 9 329
+            Set Horizontal_State to False
+            Set peAnchors to anTopRight
+        End_Object
+
+    End_Object
+
+    Object oBottom_lc is a LineControl
+        Set Size to 4 425
+        Set Location to 189 4
+        Set peAnchors to anTopLeftRight
+    End_Object
+
+//    Object oClassHelp_btn is a cRDCButton
+//        Set Label to "Class Help"
+//        Set peAnchors to anBottomLeft
+//        Set Status_Help to "Help for the cWindowsServiceFunctions class"
+//        Set Location to 200 158
+//
+//        Procedure OnClick
+//            String sPath
+//            Get psHelpPath of (phoWorkspace(ghoApplication)) to sPath
+//            Get vFolderFormat sPath to sPath
+//
+//            Runprogram Shell Background (sPath + "ClassReference.htm")
+//        End_Procedure
+//
+//    End_Object
+
+    Object oAbout_btn is a cRDCButton
+        Set Label to "About..."
+        Set peAnchors to anBottomLeft
+        Set Status_Help to "Info about the program"
+        Set Location to 200 215
+
+        Procedure OnClick
+            Send Activate_About
+        End_Procedure
+
+    End_Object
+
+    Object oChangeSkin_btn is a cRDCButton
+        Set Label to "Change Skin"
+        Set peAnchors to anBottomLeft
+        Set Location to 200 272
+
+        // Cycle through the three alternative skins on each click.
+        Procedure OnClick
+            String sSkinIniFile
+            Get psSkinIni of ghoSkinFramework to sSkinIniFile
+            Case Begin
+                Case (sSkinIniFile = CS_NormaliTunes)
+                    Move CS_NormaliTunes2 to sSkinIniFile
+                    Case Break
+                Case (sSkinIniFile = CS_NormaliTunes2)
+                    Move CS_NormaliTunesG  to sSkinIniFile
+                    Case Break
+                Case (sSkinIniFile = CS_NormaliTunesG)
+                    Move CS_NormaliTunesG2 to sSkinIniFile
+                    Case Break
+                Case Else
+                    Move CS_NormaliTunes to sSkinIniFile
+                    Case Break
+            Case End
+
+            Set psSkinFile of ghoSkinFramework to CS_SkinFile
+            Set psSkinIni  of ghoSkinFramework to sSkinIniFile
+            Send ApplySkin of ghoSkinFramework
+        End_Procedure
+
+    End_Object
+
+    Object oClose_btn is a cRDCButton
+        Set Label to "Exit"
+        Set peAnchors to anBottomRight
+        Set Status_Help to "Close the program"
+        Set Location to 200 358
+
+        Procedure OnClick
+            Send Exit_Application
+        End_Procedure
+
+    End_Object
+
+    Use StdAbout.pkg
+    Procedure Activate_About
+        Send DoAbout "" "" ("Copyright 2014-2019" * psCompany(ghoApplication)) "Author: Nils Svedmyr" "WindowsServices80x80.bmp" "E-mail: mailto:support@rdctools.com"
+    End_Procedure
+
+
+//    Object oButton1 is a Button
+//        Set Location to 164 38
+//        Set Label to "Read Test.txt"
+//
+//        Procedure OnClick
+//            String sPath sFileName sValue
+//            Integer iCh
+//
+//            Get psDataPath of (phoWorkspace(ghoApplication)) to sPath
+//            Get vFolderFormat sPath to sPath
+//            Move "test.txt" to sFileName
+//
+//            Get Seq_Open_Output_Channel (sPath + sFileName) to iCh
+//                Writeln iCh 'John,Doe,120 jefferson st.,Riverside, NJ, 08075'
+//                Writeln iCh 'Jack,McGinnis,220 hobo Av.,Phila, PA,09119'
+//                Writeln iCh '"John ""Da Man""",Repici,120 Jefferson St.,Riverside, NJ,08075'
+//                Writeln iCh 'Stephen,Tyler,"7452 Terrace ""At the Plaza"" road",SomeTown,SD, 91234'
+//                Writeln iCh ',Blankman,,SomeTown, SD, 00298'
+//                Writeln iCh '"Joan ""the bone"", Anne",Jet,"9th, at Terrace plc",Desert City,CO,00123'
+//            Send Seq_Close_Channel iCh
+//
+//            Get Seq_Open_Input_Channel (sPath + sFileName) to iCh
+//            While (not(SeqEof))
+//                Read sValue
+//                Showln sValue
+//                Read sValue
+//                Showln sValue
+//                Read sValue
+//                Showln sValue
+//                Read sValue
+//                Showln sValue
+//                Read sValue
+//                Showln sValue
+//                Readln sValue
+//                Showln sValue
+//                Showln "*********************"
+//            Loop
+//
+//            Send Seq_Close_Channel iCh
+//        End_Procedure
+//
+//    End_Object
+
+    // Function that fills & returns a tNSSMWinService struct parameters with values
+    // from the Main DDO buffer.
+    // It only populates the tNSSMWinService.sPw parameter if the passed bDecryptPw = True.
+    Function Fill_NSSMWinService Boolean bDecryptPw Returns tNSSMWinService
+        tNSSMWinService NSSMWinService
+
+        Get Value of oProgramName_fm to NSSMWinService.sProgramPath
+        Get Value of oServiceName_fm to NSSMWinService.sServiceName
+
+        Function_Return NSSMWinService
+    End_Function
+
+    // We need to resize the outer frame when starting the program
+    // to resize it slightly; else a bit of the right margin & the
+    // status_bar is cut off.
+    Procedure Activate
+        Set piMinSize to (Hi(Size(Self))) (Low(Size(Self)) -1)
+        Forward Send Activate
+//        Set Border_Style to Border_None
+//        Set Border_Style to Border_Thick
+    End_Procedure
+
+End_Object
+
+Send Activate to oMain
+Start_UI

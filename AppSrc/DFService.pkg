@@ -1,0 +1,124 @@
+//************************************************************************
+// DataFlex Service - Package to run a DataFlex program as a Windows service.
+// Copyright (c) 2003 NordTeam Gruppen
+// The package constains two classes: cErrorSystemLog and cDFService
+//
+// Author......: Allan Kim Eriksen
+// Version     : 2019.1
+// Created.....: 18/9 2003
+// Last updated: 22/12 2022 Nils Svedmyr
+//               Moved logging logic to the cApplicationDFService.pkg file to allocate for better
+//               error handling/logging.
+//               12/9 2019 Nils Svedmyr
+//               Changed names from VDF to DF and changed property names to Polish notation standard.
+//               Moved the logic for setting the log file to the cErrorSystemLog class.
+//               The error log file was renamed to: Startup folder path + module_name + CS_ServiceLogFile
+//               This will mostly mean that the error log is created in the Programs folder.
+//
+// Class package to run a DataFlex program as a Windows service.
+// Dataflex can't by itself be run as a true service on a Windows server,
+// but it can be run with a helper program.
+//
+// Note : You should install your Windows Service program by using the
+//        "DataFlex Windows Services Manager" program. It will ensure that it
+//        gets setup properly and it also automatically restarts your service
+//        program if it should crash.
+//
+// Usage: See the DFServiceProgram1.src sample program
+//************************************************************************
+Use Winkern.pkg
+Use WinShell.pkg
+Use vWin32fh.pkg
+Use WinServiceLanguageConstants.inc
+Use cWindowsServiceFunctions.inc
+
+// This will get added to the service program name (without the .exe part),
+// and created in the Programs folder:
+//#IFNDEF CS_ServiceLogFile
+//    Define CS_ServiceLogFile for "_Logfile.txt"
+//#ENDIF
+
+// Function that suspends the execution of the current thread until the
+// time-out interval elapses.
+// Parameters:
+//  dwMilliseconds [in]
+//    The time interval for which execution is to be suspended, in milliseconds.
+//    a value of zero causes the thread to relinquish the remainder of its time
+//    slice to any other thread that is ready to run. If there are no other
+//    threads ready to run, the Function Returns immediately, and the thread
+//    continues execution.
+#IFNDEF get_DfServiceSleep
+External_Function DfServiceSleep "Sleep" kernel32.dll ;
+    Integer lMilliseconds ;
+    Returns Integer
+#ENDIF
+
+Use Dfclient.pkg
+Use Dfdafmac.pkg
+
+//************************************************************************
+// *** MAIN CLASS: ***
+// Do all your actions in the OnProcess event
+//************************************************************************
+Class cDFService is a dbAppView_ //cObject
+
+    Procedure Construct_object
+        Forward Send Construct_Object
+
+        // Number of milliseconds between calls to OnProcess. A number greater than 0 will free Windows
+        // resources so that the CPU is not used at 100%(!)
+        Property Integer piSleepBetweenProcess 1000     // Wait 1000 milliseconds (1 second)
+
+        // Private, don't touch!
+        Property Boolean private.DoNotDisturb False
+
+        Send DoOpenWorkspace of ghoApplication "Config.ws"
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+        Send LogMessage CS_WSUProcessCreated
+    End_Procedure
+
+    // *** Main event ***
+    // Place your code in this event! (In the instantiated object)
+    Procedure OnProcess
+    End_Procedure
+
+    { Visibility=Private }
+    { MethodType=Event  NoDoc=True }
+    Procedure OnPreProcess
+        If (private.DoNotDisturb(Self) = False) Begin
+            Set private.DoNotDisturb to True
+            Send OnProcess
+            Set private.DoNotDisturb to False
+        End
+    End_Procedure
+
+    { Visibility=Private }
+    { MethodType=Event  NoDoc=True }
+    Procedure DoProcess
+        Integer iSleep
+
+        Send LogMessage "DoProcess called"
+        While (1)   // Never ending.
+            Send OnPreProcess
+            Get piSleepBetweenProcess to iSleep
+            Send MakeServiceSleep iSleep   
+            // Note: If a "/debug" or "-debug" parameter was passed on the command line,
+            // we will jump out of the eternal loop after *one* iteration.
+            If (pbDebugMode(ghoApplication) = True) Begin
+                Send Exit_Application
+            End
+        Loop
+
+    End_Procedure
+
+    // This message is used so the main loop
+    // of events above doesn't strain the CPU to much.
+    Procedure MakeServiceSleep Integer iMillSec
+        Integer iVoid
+        Move (DfServiceSleep(iMillSec)) to iVoid
+    End_Procedure
+
+End_Class

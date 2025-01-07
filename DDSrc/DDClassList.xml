@@ -1,0 +1,26 @@
+<DataDictionaryList xmlns="http://www.dataaccess.com/VisualDataFlex/2008/DataDictionaryList/">
+	<Tables>
+		<Table>
+			<tableNumber>1</tableNumber>
+			<tableName>WinService</tableName>
+			<DDClasses>
+				<DDClass>
+					<className>cWinServiceDataDictionary</className>
+					<classFile>cWinServiceDataDictionary.dd</classFile>
+					<preferred>true</preferred>
+				</DDClass>
+			</DDClasses>
+		</Table>
+		<Table>
+			<tableNumber>50</tableNumber>
+			<tableName>FLEXERRS</tableName>
+			<DDClasses>
+				<DDClass>
+					<className>cCodeTypeDataDictionary</className>
+					<classFile>cCodeTypeDataDictionary.dd</classFile>
+					<preferred>true</preferred>
+				</DDClass>
+			</DDClasses>
+		</Table>
+	</Tables>
+</DataDictionaryList>

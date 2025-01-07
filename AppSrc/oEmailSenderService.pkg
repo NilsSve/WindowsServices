@@ -1,0 +1,479 @@
+// To be "Use(d) in the cApplicationDFService object
+// Or to be #Included in the same object,
+// It needs to done *after* the OnWorkspaceOpened event.
+//
+// Note: Open statements must be entered in the parent object (cApplicationDFService),
+//       in the OnWorkkspaceOpened event:
+//       E.g.
+//        Procedure OnWorkspaceOpened
+//            Forward Send OnWorkspaceOpened
+//            Open MyTable1
+//            Open MyTable2
+//        End_Procedure
+
+Object oEmailSenderService is a cDFService
+    Property Integer piShowType 0
+    Property Handle  phoMailman
+    Property Integer piRightsLevel 6
+    
+    Set piSleepBetweenProcess to 30000  // 30 seconds // this is the delay - onprocess gets called every 30 seconds
+
+    Send LogMessage "service beginning"
+
+//    Open SecLogin
+//    Open SecUser
+//    Open SecGroup
+//    Open AudFiles
+//    Open AudDet
+//    Open AudInfo
+//
+//    Clear SecLogin
+//    Move "GM" to SecLogin.Login
+//    Move "EmailSenderService" to WinService.Program_Name
+//    Find EQ SecLogin by 1
+//
+//    Broadcast Recursive Send DoSetSecurityLevel
+//
+//    Use cWinServiceDataDictionary.dd
+//    Object oWinServiceDataDictionary is a cWinServiceDataDictionary
+//    End_Object
+//    
+//    Use Email.dd
+//    Use Email2.dd
+//    Use EmailSig.dd
+//   //    Use SECLOGIN.DD
+//    Use EmailAtt.dd
+//    Use Emailsys.dd
+//
+//    // setting log file
+//    
+//    Object oEmailsys_DD is a Emailsys_DataDictionary
+//    End_Object
+//
+//    Object oSeclogin_DD is a Seclogin_DataDictionary
+//    End_Object
+//
+//    Object oEmailsig_DD is a EmailSig_DataDictionary
+//        Send DefineAllExtendedFields
+//    End_Object
+//
+//    Object oEmail2_DD is a Email2_DataDictionary
+//        Send DefineAllExtendedFields
+//        
+//        Set Ordering to 4
+//        
+//        Procedure OnConstrain
+//            Date dToday
+//            
+//            Sysdate dToday
+//            
+//            Forward Send OnConstrain
+//            
+//            If (piShowType(Self)=0) Constrain Email2.SentDate EQ dToday             //Today's
+//            If (piShowType(Self)=1) Constrain Email2.SentDate GE (dToday-7)         //Last 7 days
+//            If (piShowType(Self)=2) Constrain Email2.SentDate GT 0                  //All
+//        End_Procedure
+//
+//        Procedure Request_Delete
+//            Send Info_Box "Sent Emails cannot be deleted!"
+//        End_Procedure
+//        
+//    End_Object
+//
+//    Object oEmail_DD is a Email_DataDictionary
+//        Set Ordering to 4
+//        
+//        Procedure OnConstrain
+//            Forward Send OnConstrain
+//            
+//            Constrain Email.SentDate LT '01/01/1900'
+//        End_Procedure
+//    End_Object
+//
+//    Object oEmailatt_DD is a EmailAtt_DataDictionary
+//        Set Constrain_file to EMAIL.File_number
+//        Set DDO_Server to oEmail_DD
+//
+//        Send DefineAllExtendedFields
+//    End_Object
+//
+//    Set Main_DD to oEmail_DD
+//    Set Server to oEmail_DD
+//    
+//    Object oMailMan is a cComChilkatMailMan
+//        Procedure End_Construct_Object
+//            Forward Send End_Construct_Object
+//            Set phoMailman to (Self)
+//        End_Procedure
+//    End_Object
+//
+    Procedure CheckForEmail
+        DateTime dtNow
+        Handle hoMailman
+        
+        Move (CurrentDateTime()) to dtNow
+        Send LogMessage ("In CheckForEmail, Time:" * String(dtNow))
+        
+//        Get Create (RefClass(cComChilkatMailMan)) to hoMailman
+//        Set phoMailman to hoMailman
+//        
+//        Send Clear of oWinServiceDataDictionary
+//        Repeat
+//            Send Find of oWinServiceDataDictionary GT 1
+//            If (Found) Send Sendit
+//            If (not(Found))  Break
+//        Loop
+    End_Procedure
+//    
+//    Function MaskedValue String sVal String sMask Integer iMaskType Returns String
+//        String sMisc sTmp
+//        Integer iObjectID
+//        
+//        Object myform is a form
+//            Set Form_Datatype Item 0 to iMaskType
+//            Set Form_Mask Item 0 to sMask
+//        End_Object
+//        
+//        Set Value of (myform(Self)) to sVal
+//        Get Masked_Value of (myform(Self)) Item 0 to sTmp
+//        
+//        Send Destroy_Object to (myform(Self))
+//        Function_Return sTmp
+//    End_Function
+//
+//    Procedure SendIt
+////           Handle  hSmtpObj hMailObj 
+//        Handle  hoMailman hoEmail
+//        String  sFileName sImageId sRet sImage sSubject sText sEmailTo sEmailFrom sEmailFromID sHTML sFullFrom sEmailReplyTo sEmailToTest
+//        String  sEmailPhone sEmailExt sEmailEmail sEmailWebSite sEmailCC sEmailBC sHighPriority sTemp1
+//        String  sType sCR sLF sCRLF sTextH sAttach sAttachSend sDisclaimer sSignature sDisclaimerH sSignatureH sEdit
+//        Integer iSuccess iVoid iIsOk iRet iAttachCnt iCnt iLines i iEmailID iNumAddresses iSCPrev iSCPos
+//        String  sSMTPPort sSMTPUserName sSMTPPassword sSMTP sBodyFont sBodyColor sDisclaimerFont sDisclaimerColor
+//        Variant vNewMail
+//        Date    dToday
+//        String  sTime sSigName sEmailIndivid
+//        Boolean bHighPriority
+//        DateTime dtNow //dtSendAfter
+//        TimeSpan tsDiff
+//        String[] saEmailAddress
+//        String[] saEmpty
+//        
+//        Get phoMailman to hoMailman //20160421 GM
+//        
+//        Move (CurrentDateTime()) to dtNow
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.SendAfter to dtSendAfter
+//        Move (dtNow-dtSendAfter) to tsDiff 
+//        If ((SpanTotalSeconds(tsDiff)) < 0) Procedure_Return
+//        If (dtNow <= dtSendAfter) Begin
+//            Procedure_Return
+//        End
+//        Move (Character(13)) to sCR
+//        Move (Character(10)) to sLF
+//        
+//        Move (sCR+sLF) to sCRLF
+//        
+//        //Get System Info (defaults)
+//        Send Find of oWinServiceDataDictionary GE 0
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.SignatureImage  to sImage
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.SMTP            to sSMTP
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.Port            to sSMTPPort
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.SMTPPassword    to sSMTPPassword
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.SMTPUserName    to sSMTPUserName
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.WebSite         to sEmailWebSite
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.BodyColor       to sBodyColor
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.BodyFont        to sBodyFont
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.DisclaimerColor to sDisclaimerColor
+//        Get Field_Current_Value of oEmailsys_DD Field EmailSys.DisclaimerFont  to sDisclaimerFont
+//        Move (Trim(sImage))           to sImage
+//        Move (Trim(sSMTP))            to sSMTP
+//        Move (Trim(sSMTPPort))        to sSMTPPort
+//        Move (Trim(sSMTPPassword))    to sSMTPPassword
+//        Move (Trim(sSMTPUserName))    to sSMTPUserName
+//        Move (Trim(sEmailWebSite))    to sEmailWebSite
+//        Move (Trim(sBodyColor))       to sBodyColor
+//        Move (Trim(sBodyFont))        to sBodyFont
+//        Move (Trim(sDisclaimerColor)) to sDisclaimerColor
+//        Move (Trim(sDisclaimerFont))  to sDisclaimerFont
+//        
+//        //Get the email info & set it all up
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.Attachments to iAttachCnt
+//    
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.ID            to iEmailID
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.SentTo        to sEmailTo
+//        
+//        //To get stuff to send correctly        //GM 20160509
+//        Move (Replaces(",", sEmailTo, "."))    to sEmailToTest
+//        Move (Replaces(" ", sEmailToTest, "")) to sEmailToTest
+//        If (sEmailToTest<>sEmailTo) Begin
+//            Move sEmailToTest to sEmailTo
+//            Set Field_Changed_Value of oEmail_DD Field EMAIL.SentTo to sEmailToTest
+//            Send Request_Save       of oEmail_DD
+//        End
+//        
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.BC            to sEmailBC
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.CC            to sEmailCC
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.SentBy        to sEmailFromID
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.Subject       to sSubject
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.HighPriority  to sHighPriority
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.SignatureName to sSigName
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.ReplyTo       to sEmailReplyTo     //GM 20160203
+//        
+//        If (sHighPriority="Y") Move True  to bHighPriority
+//        Else                   Move False to bHighPriority
+//        Move (Trim(sEmailTo))      to sEmailTo
+//        Move (Trim(sEmailFromID))  to sEmailFromID
+//  //        Move (Trim(sEmailReplyTo)) to sEmailReplyTo
+//        Move (Trim(sSubject))      to sSubject
+//        Move (Trim(sSigName))      to sSigName
+//        
+//        If (sEmailTo="") Procedure_Return
+//          
+//        //Get User (Sender) Info 
+//        Clear SECLOGIN
+//        Move sEmailFromID to SECLOGIN.Login
+//        Find EQ              SECLOGIN by Index.1
+//        Move SECLOGIN.Name      to sEmailFrom
+//        Move SECLOGIN.Phone     to sEmailPhone
+//        Get MaskedValue sEmailPhone "(###) ###-####" Mask_Window         to sEmailPhone
+//        Move SECLOGIN.Ext       to sEmailExt
+//        Move SECLOGIN.EmailAddr to sEmailEmail
+//
+//        Send Find of oSeclogin_DD EQ 1
+//        Get Field_Current_Value of oSeclogin_DD Field SECLOGIN.Name      to sEmailFrom
+//        Get Field_Current_Value of oSeclogin_DD Field SECLOGIN.Phone     to sEmailPhone
+//        Get MaskedValue sEmailPhone "(###) ###-####" Mask_Window         to sEmailPhone
+//        Get Field_Current_Value of oSeclogin_DD Field SECLOGIN.Ext       to sEmailExt
+//        Get Field_Current_Value of oSeclogin_DD Field SECLOGIN.EmailAddr to sEmailEmail
+//
+//        Move (Trim(sEmailFrom))  to sEmailFrom
+//        //2013-08-22 MRM Only include the user's first name and first initial of last name for sales reps.
+//        If (sEmailFrom <> 'Team Springfield') Begin
+//            Move (Pos(" ", sEmailFrom, 1)) to iSpacePos
+//            If ((iSpacePos > 0)) Begin
+//                Move (Mid(sEmailFrom, iSpacePos + 1, 1)) to sEmailFrom
+//            End
+//        End
+//        
+//        Move (Trim(sEmailPhone)) to sEmailPhone
+//        Move (Trim(sEmailExt))   to sEmailExt
+//        If (sEmailExt>"") Move (Insert("Ext: ", sEmailExt, 0)) to sEmailExt
+//        Move (Trim(sEmailEmail)) to sEmailEmail
+//
+//        Move "" to sTextH
+//
+//        Get Field_Current_Value of oEmail_DD Field EMAIL.Body to sTextH
+//        Move (Trim(sTextH)) to sTextH
+//        Move sTextH to sText    //Non-HTML (plain text) version
+//
+//        Move (Replaces(sCRLF,sTextH,"<br>")) to sTextH                                  //replace CRLF (Char 13 & 10) with HTML equiv. <br>
+//        Move (Replaces(sCR,sTextH,"<br>"))   to sTextH                                  //replace CR (Char 13) with HTML equiv. <br>
+//        
+//        //Get Default Signature & Disclaimer
+//        Send Find of oEmailsig_DD GE 0
+//        
+//        Get Field_Current_Value of oEmailsig_DD Field EmailSig.Signature  to sSignature
+//
+//        If (sSigName="") Begin      //No Signature Name supplied
+//            Move (Replace("[EmailName]",sSignature,sEmailFrom))   to sSignature         //[EmailName] is where the employee email name goes
+//        End
+//        Else Begin      //Signature Name supplied
+//            Move (Replace("[EmailName]",sSignature,sSigName))     to sSignature        
+//        End
+//        Move (Replace("[EmailPhone]",sSignature,sEmailPhone))     to sSignature   
+//        If (sEmailExt>"") Begin
+//            Move (Replace("[EmailExt]",sSignature,sEmailExt))     to sSignature 
+//        End
+//        Else Begin
+//            Move (Replace("[EmailExt]",sSignature,""))         to sSignature 
+//        End
+//        Move (Replace("[EmailEmail]",sSignature,sEmailEmail))     to sSignature    
+//        Move (Replace("[EmailWebSite]",sSignature,sEmailWebSite)) to sSignature
+//        Move sSignature to sSignatureH  
+//
+//        Move (Replaces(sCRLF,sSignatureH,"<br>"))  to sSignatureH                        //replace CRLF (Char 13 & 10) with HTML equiv. <br>
+//        Move (Replaces(sCR,sSignatureH,"<br>"))    to sSignatureH                        //replace CR (Char 13) with HTML equiv. <br>
+//
+//        Get Field_Current_Value of oEmailsig_DD Field EmailSig.Disclaimer to sDisclaimer
+//        
+//        Move (Replaces(sCRLF,sDisclaimer,"<br>")) to sDisclaimerH                       //replace CRLF (Char 13 & 10) with HTML equiv. <br>
+//        Move (Replaces(sCR,sDisclaimer,"<br>"))   to sDisclaimerH                       //replace CR (Char 13) with HTML equiv. <br>
+//    
+//        Append sText sCRLF sCRLF sSignature sCRLF sCRLF sDisclaimer                     //Build Plain Text string
+//              
+////        Move oChilkatMailMan2 to hSmtpObj
+////        Move oChilkatEmail2   to hMailObj
+//        
+//        Move (Trim(sEmailFrom)) to sFullFrom
+//        Append sFullFrom " " (Trim(sEmailEmail))
+//  
+//        //Do the email
+////        Get Create (RefClass(cComChilkatMailMan)) to hoMailman
+////        Get ComUnlockComponent of hoMailman "GARRET.CB40516_ruGv0wAU481Y" to iSuccess
+//        Get ComUnlockComponent of hoMailman "STARLE.CB10218_STSkzBYp02AV" to iSuccess
+//
+//        If (iSuccess <> True) Begin
+//            Get ComLastErrorText of hoMailman to sTemp1
+//            Showln sTemp1
+//            Procedure_Return
+//        End
+//
+//        Get InitMail of hSmtpObj to iIsOk
+//        If (iIsOk) Begin
+//            Send Cursor_Wait to (Cursor_Control(Self))
+//            Set ComSmtpHost       of hoMailman to sSMTP
+//            Set ComSmtpPort       of hoMailman to sSMTPPort
+//            If (EmailSys.UseTLS="Y") Begin
+//                Set ComStartTLS of hoMailman to True
+//            End
+//            Set ComSmtpUsername   of hoMailman to sSMTPUserName
+//            Set ComSmtpPassword   of hoMailman to sSMTPPassword
+//            Set ComSmtpPipelining of hoMailman to False
+//            
+//            Get Create (RefClass(cComChilkatEmail)) to hoEmail
+//            Get ComNewEmail     of hSmtpObj to vNewMail
+//            
+//            If (not(IsNullComObject(vNewMail))) Begin
+//                Set pvComObject       of hMailObj to vNewMail               //you must connect the Email object with the Smtp object
+//                If (bHighPriority) Begin
+//                    Send ComAddHeaderField of hoMailman "X-Priority" "1"
+//                    Send ComAddHeaderField of hoMailman "X-MSMail-Priority" "High"
+//                End
+//                
+//                //Addresses with multiples must be added separately per Matt@Chilkat 20160425
+//                Move (Pos(";",sEmailTo)) to iSCPos
+//                If (iSCPos>0) Begin //Multiple Addresses
+//                    Move saEmpty to saEmailAddress      //Make sure the array is empty
+//                    Move 1 to iSCPos  // initialize to non-zero
+//                    Move 1 to iSCPrev
+//                    // loop while there is a ; found
+//                    While (iSCPos > 0)                                                
+//                        Move (Pos (";", sEmailTo, iSCPrev)) to iSCPos       //, 0
+//                        If (iSCPos > 0) Begin
+//                            // move current address to array
+//                            Move (Mid(sEmailTo, iSCPos-iSCPrev, iSCPrev)) to saEmailAddress[i]
+//                            Increment i
+//                            // store current ; marker as previous ; marker
+//                            Move (iSCPos+1) to iSCPrev
+//                        End
+//                        // once no ; are left, move address after last space into array
+//                        Move (Right(sEmailTo, Length(sEmailTo)-(iSCPrev-1))) to saEmailAddress[i]
+//                    Loop
+//                    Move (SizeOfArray(saEmailAddress)) to iNumAddresses
+//                    For i from 0 to (iNumAddresses-1)
+//                        Get ComAddTo of hoEmail "" saEmailAddress[i] to iRet   //To Email
+//                    End
+//                End
+//                Else Begin      //Single Address
+//                    Get ComAddTo of hoEmail "" sEmailTo to iRet   //To Email
+//                End
+//                Set ComFromAddress    of hoEmail to sEmailEmail            //From Email Address
+//                Set ComFromName       of hoEmail to sEmailFrom             //From Email Name
+//                Get ComAddCc          of hoEmail "" sEmailCC to iRet       //Cc 
+//                Get ComAddBcc         of hoEmail "" sEmailBC to iRet       //Bcc 
+//                Set ComSubject        of hoEmail to sSubject               //Email Subject
+//                If (sEmailReplyTo>"") Begin
+//                    Set ComReplyTo    of hoEmail to sEmailReplyTo          //added GM 20160203
+//                End
+//                //Set up body - actually ALL one line 
+//                //Lines 1 & 2 set up font & color for the body
+//                //Line  3     puts in the body & signature
+//                //Lines 4 & 5 set up the font, color & image for the disclaimer
+//                //Line  6     puts in the disclaimer & cleans up font, body, etc.
+//                
+//                If (sImage>"") Begin    //If we have a bottom of the email graphic
+//                    Get ComAddRelatedFile of hoEmail sImage to sImageId        //Set up Picture
+//                    Move "<html> <body> <font Face='" to sHTML
+//                    Append sHTML sBodyFont "' Size='2' Color='" sBodyColor "'>"
+//                    Append sHTML sTextH " <br> <br> " sSignatureH
+//                    Append sHTML "</font> <br> <br>  <IMG SRC=" (Character(34)) "cid:" sImageID (Character(34)) "> "
+//                    Append sHTML "<font Face='" sDisclaimerFont "' Size='1' Color='" sDisclaimerColor "'> <br> <br>"
+//                    Append sHTML sDisclaimerH "</font> </body> </html>"
+//                End
+//                Else Begin      //If no graphic
+//                    Move "<html> <body> <font Face='" to sHTML
+//                    Append sHTML sBodyFont "' Size='2' Color='" sBodyColor "'>"
+//                    Append sHTML sTextH " <br> " sSignatureH
+//                    Append sHTML "</font> <br> <br> "
+//                    Append sHTML "<font Face='" sDisclaimerFont "' Size='1' Color='" sDisclaimerColor "'> <br> <br>"
+//                    Append sHTML sDisclaimerH "</font> </body> </html>"
+//                End
+//                Send ComSetHtmlBody   of hoEmail sHTML
+//                //Plain text alternative
+//                Get ComAddPlainTextAlternativeBody of hoEmail sText to iSuccess
+//                
+//                //Get Attachments
+//                If (iAttachCnt>0) Begin
+//                    Clear EMAILATT
+//                    Move iEmailID to EMAILATT.EmailID
+//                    Find GE EMAILATT by Index.1
+//                    If ((Found) and (EMAILATT.EmailID=iEmailID)) Begin
+//                        Send Find of oEmailatt_DD EQ 0
+//                        For iCnt from 0 to (iAttachCnt-1)
+//                            Get Field_Current_Value of oEmailatt_DD Field EMAILATT.FileName to sAttach
+//                            
+//                            //GM 20141125 This will need to be changed when VDF moves off ArmorySV03!
+//                            Move (Uppercase(sAttach)) to sAttach
+//                            Move (Replace("D:\VDFPROGRAMS",sAttach, "\\ARMORYSV03")) to sAttach
+//                            Move (Replace("F:\Source",sAttach, "\\SFArmorySV03")) to sAttach
+//                            Move (Trim(sAttach)) to sAttach
+//
+//                            Get ComAddFileAttachment of hoEmail sAttach to sRet
+//                            Send Find of oEmailatt_DD GT 1
+//                            If (not(Found)) Break
+//                        Loop
+//                    End
+//                End
+//    
+//                //Send it
+//                Get pvComObject  of hoEmail to vNewMail
+//                Get ComSendEmail of hoMailman vNewMail to iSuccess
+//                Get ComSendEmail of hSmtpObj vNewMail to iSuccess           
+//                
+//                // Save Sending info back to the record
+//                
+//                //Check for any errors & save record as appropriate
+//                If (iSuccess<>1) Begin
+//                    Get ComLastErrorText of hoMailman to sText
+//                    Set Field_Changed_Value of oEmail_DD Field EMAIL.SendError to sText
+//                    Set Field_Changed_Value of oEmail_DD Field EMAIL.SentOK    to "N"
+//                    //Uncomment to write full error text
+//                    Append_Output "D:\YankeeTest\Logs\EmailError.txt"
+//                        Writeln "ID: " EMAIL.ID " Attempted: " dtNow
+//                        Writeln
+//                        Writeln sText
+//                        Writeln "--------------------------------------------"
+//                        Writeln
+//                    Close_Output
+//                    Get ComCloseSmtpConnection of hoMailman   to iSuccess
+//                    Get Create (RefClass(cComChilkatMailMan)) to hoMailman
+//                End
+//                Else Begin
+//                    Sysdate dToday
+//                    Get CurrentTime5 to sTime
+//                    Set Field_Changed_Value of oEmail_DD Field EMAIL.SentDate  to dToday
+//                    Set Field_Changed_Value of oEmail_DD Field EMAIL.SentTime  to sTime
+//                    Set Field_Changed_Value of oEmail_DD Field EMAIL.SendError to ""
+//                    Set Field_Changed_Value of oEmail_DD Field EMAIL.SentOK    to "Y"
+//                End
+//                Send Request_Save of oEmail_DD
+//            End
+//            Send Destroy of hoMailman
+//            Get ComCloseSmtpConnection of hoMailman to iSuccess
+//            Send Cursor_Ready to (Cursor_Control(Self))
+//            Send Info_Box (If(iSuccess=1,"Mail sent!","Error in sending mail"))
+//        End
+//        Else Begin
+//           Send Stop_Box "Failed to initialize mail component."
+//        End    
+//    End_Procedure
+
+    Procedure Remove_Mdi_Dialog Integer Obj
+        //Showln "Removing mdi dialog"
+    End_Procedure
+    
+    Procedure OnProcess
+        Send LogMessage "In OnProcess"
+        Send CheckForEmail
+    End_Procedure
+
+End_Object

@@ -1,0 +1,448 @@
+Use DFClient.pkg
+Use cCJStandardCommandBarSystem.pkg
+Use cCJCommandBarSystem.pkg
+
+Object oDbWindowsServicesTest is a dbModalPanel
+    Set Label to "dbWindowsServicesTest"
+    Set Size to 135 358
+    Set piMinSize to 89 211
+    Set Location to 2 2
+    Set Border_Style to Border_Thick
+
+//    Object oCJCommandBarSystem1 is a cCJCommandBarSystem
+//        Object oCJToolbar1 is a cCJToolbar
+//        End_Object
+//    End_Object
+
+    Object oCJCommandBarSystem is a cCJCommandBarSystem
+        Set pbSyncFloatingToolbars to False
+        Set piLayoutBuild to 2
+
+        Property Boolean pbVerboseCertificateState False
+
+        Procedure OnCreateCommandBars
+            Handle hoOptions
+
+            Forward Send OnCreateCommandBars
+            Get OptionsObject to hoOptions
+            Send ComSetIconSize of hoOptions False 24 24  // Set icon size for Toolbar buttons.
+            Send DoChangeToolTipFormat
+        End_Procedure
+
+        Procedure DoChangeToolTipFormat
+            Variant vToolTip
+            Handle  hoObject
+
+            Get ComToolTipContext to vTooltip
+            Get Create (RefClass(cCJToolTipContext)) to hoObject
+            Set pvComObject of hoObject to vTooltip
+
+            Set ComStyle            of hoObject to xtpToolTipOffice2007
+            Send ComShowTitleAndDescription of hoObject True xtpToolTipIconInfo
+            Set ComShowOfficeBorder of hoObject to True
+            Set ComShowShadow       of hoObject to True
+            // Set the max width for a tooltip. 250 just seems to be a good
+            // compromise. After 250 pixels the text will wrap to the next line automatically.
+            Set  ComMaxTipWidth      of hoObject to 250 // In pixels
+            Send Destroy of hoObject
+        End_Procedure
+
+        Object oFind_ToolBar is a cCJToolbar
+            Set psTitle to "Finding Toolbar"
+            Set piBarID to 1
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to False
+
+            Object oFindFirstTool is a cCJFindFirstMenuItem
+                Set psImage to "ActionFirstNew.ico"
+            End_Object
+
+            Object oFindPreviousTool is a cCJFindPreviousMenuItem
+                Set psImage to "ActionPreviousNew.ico"
+            End_Object
+
+            Object oFindMenuTool is a cCJFindMenuItem
+                Set psImage to "ActionFindEQNew.ico"
+            End_Object
+
+            Object oFindNextTool is a cCJFindNextMenuItem
+                Set psImage to "ActionNextNew.ico"
+            End_Object
+
+            Object oFindLastTool is a cCJFindLastMenuItem
+                Set psImage to "ActionLastNew.ico"
+            End_Object
+
+        End_Object
+
+        Object oFile_ToolBar is a cCJToolbar
+            Set psTitle to "Data Entry Toolbar"
+            Set piBarID to 2
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to True
+
+            Object oSaveToolItem is a cCJSaveMenuItem
+                Set psCaption to "Save"
+                Set psToolTip to "Save (Ctrl+S or F2)"
+                Set psDescription to "Save changes"
+                Set psImage to "ActionSaveRecordNew.ico"
+            End_Object
+
+            Object oClearToolItem is a cCJClearMenuItem
+                Set psCaption to "Clear"
+                Set psToolTip to "Clear (F5)"
+                Set psDescription to "Clear data"
+                Set psImage to "ActionClearNew.ico"
+            End_Object
+
+            Object oDeleteToolItem is a cCJDeleteMenuItem
+                Set psCaption to "Delete"
+                Set psToolTip to "Delete (Shift+F2)"
+                Set psImage to "ActionDeleteRecordNew.ico"
+            End_Object
+
+        End_Object
+
+        Object oConfigure_Toolbar is a cCJToolbar
+            Set psTitle to "Configure ToolBar"
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to True
+
+            Object oSkinsDummyMenuItem is a cCJMenuItem
+                Set psImage to "Skins024N32.ico"
+                Set psCaption to "Skin"
+                Set peControlStyle to xtpButtonIconAndCaption
+                Set peControlType to xtpControlLabel
+                Set psToolTip to "Select the skin to use from the dropdown list"
+                Set pbControlBeginGroup to True
+            End_Object
+
+//            Object oSkinsMenuItem is a cSkinComboBoxCJMenuItem
+//            End_Object
+
+//Register_Object oSkinEnumeration_Panel
+//
+//            Object oMenuItem is a cCJMenuItem
+//                Set psToolTip to "Skin List"
+//                Set psDescription to "Show a list with different skins to change the visual style of the application."
+//                Procedure OnExecute Variant vCommandBarControl
+//                    Forward Send OnExecute vCommandBarControl
+//                    Send Popup of (oSkinEnumeration_Panel (Client_Id(ghoCommandBars)))
+//                End_Procedure
+//            End_Object
+
+
+        End_Object
+
+        Object oDigitalSigning_Toolbar is a cCJToolbar
+            Set psTitle to "Digital Certificate Toolbar"
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to True
+
+            Object oValidateFile_MenuItem is a cCJMenuItem
+                Set psCaption to "Check"
+                Set psToolTip to "Check if file signed"
+                Set psDescription to "Checks if the file contains a valid digital certificate"
+                Set psImage to "DigitalVerification024N32.ico"
+                Set pbActiveUpdate to True
+                Procedure OnExecute Variant vCommandBarControl
+                    tCertificateParams CertificateParams
+
+                    Forward Send OnExecute vCommandBarControl
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to CertificateParams.sProgramPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to CertificateParams.sFileName
+//                    Get pbVerboseCertificateState                                            to CertificateParams.bVerbose
+//
+//                    Send ValidateFile of ghoDigitalSoftwareCertificate CertificateParams
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to sPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to sFilename
+//                    Get vFolderFormat sPath to sPath
+//                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True)
+                End_Function
+
+            End_Object
+
+            Object oSignFile_MenuItem is a cCJMenuItem
+                Set psCaption to "Sign"
+                Set psToolTip to "Sign file"
+                Set psDescription to "Sign the file with a digital certificate. The best digital certificate available on the machine will be automatically selected."
+                Set psImage to "DigitallySign024N32.ico"
+                Set pbActiveUpdate to True
+
+                Procedure OnExecute Variant vCommandBarControl
+                    tCertificateParams      CertificateParams
+                    tCertificateCredentials CertificateCredentials
+
+                    Forward Send OnExecute vCommandBarControl
+
+                    // Mandatory variables that needs to be set when signing a file:
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to CertificateParams.sProgramPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to CertificateParams.sFileName
+//                    Move True                                                                to CertificateParams.bUseTimeStamp
+//
+//                    // Optional parameters:
+//                    Get pbVerboseCertificateState                                            to CertificateParams.bVerbose
+//                    // Move CS_URLTimeStampDefault                                  to CertificateParams.sURLTimeStamp // Default = CS_URLTimeStampDefault
+//                    // Move "http://www.mysite.com"                                            to CertificateParams.sOurWebSite
+//                    // Move "My Program Description"                                           to CertificateParams.sDescription
+//
+//                    // These variables _must_ be set if the best certificate should _not_ be used.
+//                    // We then need to specify the credentials path & filename plus a password.
+//                    // Move "MyCredentialsFilePath"                                            to CertificateCredentials.sCredentialsPath
+//                    // Move "MyCredentialsFileName"                                            to CertificateCredentials.sCredentialsFile
+//                    // Move "My credential password"                                           to CertificateCredentials.sCredentialsPw
+//
+//                    Send SignFile of ghoDigitalSoftwareCertificate CertificateParams //CertificateCredentials // Second param is optional if not used.
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to sPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to sFilename
+//                    Get vFolderFormat sPath to sPath
+//                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True)
+                End_Function
+
+            End_Object
+
+            Object oValidateTimeStamp_MenuItem is a cCJMenuItem
+                Set psCaption to "Check Timestamp"
+                Set psToolTip to "Check time stamp"
+                Set psDescription to "Validates if a file contains a valid time stamp (and a valid digital certificate)"
+                Set psImage to "DigitalTimeStampInfo024N32.ico"
+                Set pbActiveUpdate to True
+
+                Procedure OnExecute Variant vCommandBarControl
+                    tCertificateParams CertificateParams
+
+                    Forward Send OnExecute vCommandBarControl
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to CertificateParams.sProgramPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to CertificateParams.sFileName
+//                    Get pbVerboseCertificateState                                            to CertificateParams.bVerbose
+//
+//                    Send ValidateTimeStamp of ghoDigitalSoftwareCertificate CertificateParams
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to sPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to sFilename
+//                    Get vFolderFormat sPath to sPath
+//                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True)
+                End_Function
+
+            End_Object
+
+            Object oDigitallyTimeStamp_MenuItem is a cCJMenuItem
+                Set psCaption to "Timestamp"
+                Set psToolTip to "Add time stamp"
+                Set psDescription to ("Adds a time stamp to a digitally signed executable. By default the time-stamp authority used is:" * CS_URLTimeStampDefault)
+                Set psImage to "DigitalTimeStamp024N32.ico"
+                Set pbActiveUpdate to True
+
+                Procedure OnExecute Variant vCommandBarControl
+                    tCertificateParams CertificateParams
+
+//                    Forward Send OnExecute vCommandBarControl
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to CertificateParams.sProgramPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to CertificateParams.sFileName
+//                    Get pbVerboseCertificateState                                            to CertificateParams.bVerbose
+//
+//                    Send TimeStampFile of ghoDigitalSoftwareCertificate CertificateParams
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to sPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to sFilename
+//                    Get vFolderFormat sPath to sPath
+//                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True)
+                End_Function
+
+            End_Object
+
+            Object oVerboseState_ToolButton is a cCJMenuItem
+                Set peControlType to xtpControlCheckBox
+                Set psCaption to "Verbose"
+                Set psToolTip to "Verbose State"
+                Set psDescription to "Governs the amount of info displayed after a digital certificate action"
+                Set pbActiveUpdate to True
+                Set pbControlBeginGroup to True
+
+                Procedure OnExecute Variant vCommandBarControl
+//                    Boolean bChecked
+//                    Forward Send OnExecute vCommandBarControl
+//                    Get pbChecked to bChecked
+//                    Set pbChecked to (not(bChecked))
+//                    Set pbVerboseCertificateState to (not(bChecked))
+//                    Send WriteDword of ghoApplication "Preferences" "VerboseState" (not(bChecked))
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Path to sPath
+//                    Get Field_Current_Value of (Main_DD(Self)) Field WinService.Program_Name to sFilename
+//                    Get vFolderFormat sPath to sPath
+//                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True)
+                End_Function
+
+                Procedure OnCreateControl Handle hoObj
+//                    DWord dwVerbose
+//                    Forward Send OnCreateControl hoObj
+//                    Get ReadDword of ghoApplication "Preferences" "VerboseState" 0 to dwVerbose
+//                    Set pbChecked to dwVerbose
+//                    Set pbVerboseCertificateState to dwVerbose
+                End_Procedure
+
+            End_Object
+
+        End_Object
+
+        Object oHelp_Toolbar is a cCJToolbar
+            Set psTitle to "Help ToolBar"
+            Set piBarID to 9
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbEnableDocking to False
+            Set pbHideWrap to True
+
+            Object oClassHelp_MenuItem is a cCJMenuItem
+                Set psCaption to "Help"
+                Set psToolTip to "Class Help"
+                Set psDescription to "Help for the cWindowsServiceFunctions class"
+                Set psImage to "ClassHelp032N32.ico"
+                Set pbActiveUpdate to True
+
+                Procedure OnExecute Variant vCommandBarControl
+//                    String sPath sFilename
+//                    Get psHelpPath of (phoWorkspace(ghoApplication)) to sPath
+//                    Get vFolderFormat sPath to sPath
+//                    Move "ClassReference.htm" to sFileName
+//                    Send vShellExecute "open" (sPath + sFileName) "" ""
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get psHelpPath of (phoWorkspace(ghoApplication)) to sPath
+//                    Get vFolderFormat sPath to sPath
+//                    Move "ClassReference.htm" to sFileName
+//                    Get vFilePathExists (sPath + sFileName) to bExists
+//
+                    Function_Return bExists
+                End_Function
+
+            End_Object
+
+            Object oAbout_MenuItem is a cCJMenuItem
+                Set psCaption to "About"
+                Set psToolTip to "About Info"
+                Set psDescription to "About the program"
+                Set psImage to "ActionAboutNew.ico"
+                Procedure OnExecute Variant vCommandBarControl
+                    Forward Send OnExecute vCommandBarControl
+                    Send Activate_About of (Client_Id(ghoCommandBars))
+                End_Procedure
+            End_Object
+
+            Object oNSSMHelp_MenuItem is a cCJMenuItem
+                Set psCaption to "Help"
+                Set psToolTip to "NSSM Help"
+                Set psDescription to "Help for the NSSM helper program - The Non-Sucking Service Manager"
+                Set psImage to "ActionHelpNew.ico"
+                Set pbActiveUpdate to True
+
+                Procedure OnExecute Variant vCommandBarControl
+//                    String sPath sFilename
+//                    Forward Send OnExecute vCommandBarControl
+//                    Get psHelpPath of (phoWorkspace(ghoApplication)) to sPath
+//                    Get vFolderFormat sPath to sPath
+//                    Move "nssm.htm" to sFileName
+//                    Send vShellExecute "open" (sPath + sFileName) "" ""
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+//                    String sPath sFilename
+                    Boolean bExists
+
+//                    Get psHelpPath of (phoWorkspace(ghoApplication)) to sPath
+//                    Get vFolderFormat sPath to sPath
+//                    Move "nssm.htm" to sFileName
+//                    Get vFilePathExists (sPath + sFileName) to bExists
+
+                    Function_Return bExists
+                End_Function
+
+            End_Object
+
+            Object oExitMenuItem is a cCJExitMenuItem
+                Set psImage to "ActionExitNew.ico"
+                Set psToolTip to "Exit"
+                Set psDescription to "Exit the program (Alt+F4)"
+                Set pbControlBeginGroup to True
+            End_Object
+
+        End_Object
+
+    End_Object
+
+    Object oOK_btn is a Button
+        Set Label    to "&OK"
+        Set Location to 117 249
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+           Send Close_Panel
+        End_Procedure
+
+    End_Object
+
+    Object oCancel_btn is a Button
+        Set Size to 14 50
+        Set Label    to "&Cancel"
+        Set Location to 117 304
+        Set peAnchors to anBottomRight
+
+        Procedure OnClick
+           Send Close_Panel
+        End_Procedure
+
+    End_Object
+
+    On_Key Key_Alt+Key_O Send KeyAction of oOk_btn
+    On_Key Key_Alt+Key_C Send KeyAction of oCancel_btn
+
+End_Object

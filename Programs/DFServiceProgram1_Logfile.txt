@@ -1,0 +1,434 @@
+2024-12-25 17:46:27  Exit_Application Service exited
+
+2024-12-25 17:46:24  oApplication just before end_object
+
+2024-12-25 17:46:24  Service process object created (phoDFService).
+
+2024-12-25 17:46:24  Error-Invalid message. MSG_ADD_MDI_DIALOG\n\nTechnical Details\nError Number: 98\nInstruction Address: 12233
+
+2024-12-25 17:46:24  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 13668
+
+2024-12-25 17:46:24  oApplication Start
+
+2022-12-31 17:26:44.541  OnProcess
+
+2022-12-31 17:26:44.538  DoProcess called
+
+2022-12-31 17:26:44.526  After End_Object ghoApplication
+
+2022-12-31 17:26:44.473  oApplication just before end_object
+
+2022-12-31 17:26:44.471  Service process object created (phoDFService).
+
+2022-12-31 17:26:44.459  Error-Invalid message. MSG_ADD_MDI_DIALOG\n\nTechnical Details\nError Number: 98\nInstruction Address: 12233
+
+2022-12-31 17:26:44.432  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 13668
+
+2022-12-31 17:26:44.429  oApplication Start
+
+2022-12-29 20:31:21.679  Exit_Application Service exited
+
+2022-12-29 20:31:06.62  OnProcess
+
+2022-12-29 20:31:06.616  DoProcess called
+
+2022-12-29 20:31:06.612  After End_Object ghoApplication
+
+2022-12-29 20:31:06.566  oApplication just before end_object
+
+2022-12-29 20:31:06.561  Service process object created (phoDFService).
+
+2022-12-29 20:31:06.558  Error-Invalid message. MSG_ADD_MDI_DIALOG\n\nTechnical Details\nError Number: 98\nInstruction Address: 12231
+
+2022-12-29 20:31:06.553  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 13666
+
+2022-12-29 20:31:06.548  oApplication Start
+
+2022-12-29 18:11:35.555  Exit_Application Service exited
+
+2022-12-29 18:11:32.144  OnProcess
+
+2022-12-29 18:11:32.141  DoProcess called
+
+2022-12-29 18:11:32.138  After End_Object ghoApplication
+
+2022-12-29 18:11:32.086  oApplication just before end_object
+
+2022-12-29 18:11:32.081  Service process object created (phoDFService).
+
+2022-12-29 18:11:32.077  oApplication Start
+
+2022-12-29 17:19:39.327  Exit_Application Service exited
+
+2022-12-29 17:19:35.839  OnProcess
+
+2022-12-29 17:19:35.835  DoProcess called
+
+2022-12-29 17:19:35.828  After End_Object ghoApplication
+
+2022-12-29 17:19:35.778  oApplication just before end_object
+
+2022-12-29 17:19:35.771  Service process object created (phoDFService).
+
+2022-12-29 17:19:35.76  oApplication Start
+
+2022-12-29 17:18:11.828  Exit_Application Service exited
+
+2022-12-29 17:18:09.697  OnProcess
+
+2022-12-29 17:18:09.694  DoProcess called
+
+2022-12-29 17:18:09.691  After End_Object ghoApplication
+
+2022-12-29 17:17:58.549  Service process object created (phoDFService).
+
+2022-12-29 17:17:34.541  Service process object created (phoDFService).
+
+2022-12-29 17:17:34.512  oApplication just before end_object
+
+2022-12-29 17:17:34.501  oApplication Start
+
+2022-12-29 17:14:39.356  Exit_Application Service exited
+
+2022-12-29 17:14:36.669  OnProcess
+
+2022-12-29 17:14:36.666  DoProcess called
+
+2022-12-29 17:14:36.663  After End_Object ghoApplication
+
+2022-12-29 17:14:36.653  Service process object created (phoDFService).
+
+2022-12-29 17:14:36.629  Service process object created (phoDFService).
+
+2022-12-29 17:14:36.605  oApplication just before end_object
+
+2022-12-29 17:14:36.601  oApplication Start
+
+2022-12-29 17:14:14.587  Exit_Application Service exited
+
+2022-12-29 17:14:11.685  OnProcess
+
+2022-12-29 17:14:11.682  DoProcess called
+
+2022-12-29 17:14:11.678  After End_Object ghoApplication
+
+2022-12-29 17:14:11.674  Service process object created (phoDFService).
+
+2022-12-29 17:14:11.652  Service process object created (phoDFService).
+
+2022-12-29 17:14:11.626  oApplication just before end_object
+
+2022-12-29 17:14:11.617  After successful OnWorkspaceOpened
+
+2022-12-29 17:14:04.677  oApplication Start
+
+2022-12-29 17:11:32.459  Exit_Application Service exited
+
+2022-12-29 17:11:25.482  OnProcess
+
+2022-12-29 17:11:25.479  DoProcess called
+
+2022-12-29 17:11:25.475  After End_Object ghoApplication
+
+2022-12-29 17:11:25.473  Service process object created (phoDFService).
+
+2022-12-29 17:11:25.45  Service process object created (phoDFService).
+
+2022-12-29 17:11:25.422  oApplication just before end_object
+
+2022-12-29 17:11:12.243  After successful OnWorkspaceOpened
+
+2022-12-29 17:10:16.116  oApplication Start
+
+2022-12-29 16:55:46.211  Error-Application/Workspace error. The program cannot run as the following fatal error has occurred while initializing the '0' Workspace:\n\nC:\Projects\DF18\WindowsServices\Programs\0.ws\n\nThe Workspace file identifying the Workspace can not be found.\n\nTechnical Details\nError Number: 4415\nInstruction Address: 11543
+
+2022-12-29 16:55:46.2  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 11543
+
+2022-12-29 16:55:14.616  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 11536
+
+2022-12-29 16:54:58.573  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 11533
+
+2022-12-29 16:54:15.158  oApplication Start
+
+2022-12-29 16:50:06.959  Process terminated! Table =  (1)
+
+2022-12-29 16:50:06.95  Error-Entry does not exist in filelist. Table =  (1)\n\nTechnical Details\nError Number: 74\nInstruction Address: 11657\nError Source = Flexdrvr.Open
+
+2022-12-29 16:49:56.526  oApplication Start
+
+2022-12-29 16:47:55.976  Exit_Application Service exited
+
+2022-12-29 16:47:31.123  OnProcess
+
+2022-12-29 16:47:31.121  DoProcess called
+
+2022-12-29 16:47:31.11  After End_Object ghoApplication
+
+2022-12-29 16:47:31.107  Service process object created (phoDFService).
+
+2022-12-29 16:47:31.085  After successful OnWorkspaceOpened
+
+2022-12-29 16:47:31.082  Service process object created (phoDFService).
+
+2022-12-29 16:47:31.053  oApplication just before end_object
+
+2022-12-29 16:47:31.05  oApplication Start
+
+2022-12-29 16:45:39.941  OnProcess
+
+2022-12-29 16:45:29.939  OnProcess
+
+2022-12-29 16:45:29.936  DoProcess called
+
+2022-12-29 16:45:29.933  After End_Object ghoApplication
+
+2022-12-29 16:45:29.924  Service process object created (phoDFService).
+
+2022-12-29 16:45:29.902  After successful OnWorkspaceOpened
+
+2022-12-29 16:45:29.891  Service process object created (phoDFService).
+
+2022-12-29 16:45:29.865  oApplication just before end_object
+
+2022-12-29 16:45:24.837  oApplication Start
+
+2022-12-29 16:35:19.721  After End_Object ghoApplication
+
+2022-12-29 16:35:09.807  After successful OnWorkspaceOpened
+
+2022-12-29 16:34:56.064  Service process object created (phoDFService).
+
+2022-12-29 16:34:38.162  oApplication just before end_object
+
+2022-12-29 16:34:29.377  oApplication Start
+
+2022-12-29 16:20:48.64  After End_Object ghoApplication
+
+2022-12-29 16:20:47.987  After successful OnWorkspaceOpened
+
+2022-12-29 16:20:47.383  Service process object created (phoDFService).
+
+2022-12-29 16:20:46.468  oApplication just before end_object
+
+2022-12-29 16:20:45.429  oApplication Start
+
+2022-12-29 16:20:01.806  After End_Object ghoApplication
+
+2022-12-29 16:20:01.161  After successful OnWorkspaceOpened
+
+2022-12-29 16:20:00.376  Service process object created (phoDFService).
+
+2022-12-29 16:19:59.362  oApplication just before end_object
+
+2022-12-29 16:19:57.702  oApplication Start
+
+2022-12-29 16:18:52.234  After End_Object ghoApplication
+
+2022-12-29 16:18:52.232  After successful OnWorkspaceOpened
+
+2022-12-29 16:18:52.228  Service process object created (phoDFService).
+
+2022-12-29 16:18:52.203  oApplication just before end_object
+
+2022-12-29 16:18:52.192  oApplication Start
+
+2022-12-29 16:16:40.627  After End_Object ghoApplication
+
+2022-12-29 16:16:40.624  After successful OnWorkspaceOpened
+
+2022-12-29 16:16:40.614  Service process object created (phoDFService).
+
+2022-12-29 16:16:40.591  oApplication just before end_object
+
+2022-12-29 16:16:40.587  oApplication Start
+
+2022-12-29 16:16:11.26  After End_Object ghoApplication
+
+2022-12-29 16:16:11.257  After successful OnWorkspaceOpened
+
+2022-12-29 16:16:11.254  Service process object created (phoDFService).
+
+2022-12-29 16:16:11.232  oApplication just before end_object
+
+2022-12-29 16:16:11.229  oApplication Start
+
+2022-12-29 16:15:53.169  OnProcess
+
+2022-12-29 16:15:52.157  OnProcess
+
+2022-12-29 16:15:51.145  OnProcess
+
+2022-12-29 16:15:50.133  OnProcess
+
+2022-12-29 16:15:49.12  OnProcess
+
+2022-12-29 16:15:48.108  OnProcess
+
+2022-12-29 16:15:47.093  OnProcess
+
+2022-12-29 16:15:46.084  OnProcess
+
+2022-12-29 16:15:45.075  OnProcess
+
+2022-12-29 16:15:44.068  OnProcess
+
+2022-12-29 16:15:43.056  OnProcess
+
+2022-12-29 16:15:42.047  OnProcess
+
+2022-12-29 16:15:41.034  OnProcess
+
+2022-12-29 16:15:40.025  OnProcess
+
+2022-12-29 16:15:39.02  OnProcess
+
+2022-12-29 16:15:38.006  OnProcess
+
+2022-12-29 16:15:36.993  OnProcess
+
+2022-12-29 16:15:35.976  OnProcess
+
+2022-12-29 16:15:34.964  OnProcess
+
+2022-12-29 16:15:33.951  OnProcess
+
+2022-12-29 16:15:32.943  OnProcess
+
+2022-12-29 16:15:31.93  OnProcess
+
+2022-12-29 16:15:30.92  OnProcess
+
+2022-12-29 16:15:29.909  OnProcess
+
+2022-12-29 16:15:28.907  OnProcess
+
+2022-12-29 16:15:27.895  OnProcess
+
+2022-12-29 16:15:26.886  OnProcess
+
+2022-12-29 16:15:25.872  OnProcess
+
+2022-12-29 16:15:24.861  OnProcess
+
+2022-12-29 16:15:23.857  OnProcess
+
+2022-12-29 16:15:22.844  OnProcess
+
+2022-12-29 16:15:21.831  OnProcess
+
+2022-12-29 16:15:20.819  OnProcess
+
+2022-12-29 16:15:19.804  OnProcess
+
+2022-12-29 16:15:18.79  OnProcess
+
+2022-12-29 16:15:17.775  OnProcess
+
+2022-12-29 16:15:16.764  OnProcess
+
+2022-12-29 16:15:15.76  OnProcess
+
+2022-12-29 16:15:15.757  DoProcess called
+
+2022-12-29 16:15:15.755  After End_Object ghoApplication
+
+2022-12-29 16:15:15.752  After successful OnWorkspaceOpened
+
+2022-12-29 16:15:15.743  Service process object created (phoDFService).
+
+2022-12-29 16:15:15.719  oApplication just before end_object
+
+2022-12-29 16:15:15.709  oApplication Start
+
+2022-12-29 16:15:03.365  After End_Object ghoApplication
+
+2022-12-29 16:15:03.356  After successful OnWorkspaceOpened
+
+2022-12-29 16:15:03.353  Service process object created (phoDFService).
+
+2022-12-29 16:15:03.326  oApplication just before end_object
+
+2022-12-29 16:15:03.322  oApplication Start
+
+2022-12-29 16:05:58.75  OnProcess
+
+2022-12-29 16:05:38.784  OnProcess
+
+2022-12-29 16:05:31.586  OnProcess
+
+2022-12-29 16:05:23.681  DoProcess called
+
+2022-12-29 16:05:18.363  After End_Object ghoApplication
+
+2022-12-29 16:05:18.353  After successful OnWorkspaceOpened
+
+2022-12-29 16:05:18.343  Service process object created (phoDFService).
+
+2022-12-29 16:05:18.318  oApplication just before end_object
+
+2022-12-29 16:05:18.314  oApplication Start
+
+2022-12-29 16:04:18.866  After End_Object ghoApplication
+
+2022-12-29 16:04:18.863  After successful OnWorkspaceOpened
+
+2022-12-29 16:04:18.861  Service process object created (phoDFService).
+
+2022-12-29 16:04:18.833  oApplication just before end_object
+
+2022-12-29 16:04:18.831  oApplication Start
+
+2022-12-26 16:13:04  OnProcess
+
+2022-12-26 16:13:03  OnProcess
+
+2022-12-26 16:13:02  OnProcess
+
+2022-12-26 16:13:01  OnProcess
+
+2022-12-26 16:13:00  OnProcess
+
+2022-12-26 16:12:59  OnProcess
+
+2022-12-26 16:12:58  OnProcess
+
+2022-12-26 16:12:57  OnProcess
+
+2022-12-26 16:12:56  OnProcess
+
+2022-12-26 16:12:55  OnProcess
+
+2022-12-26 16:12:54  OnProcess
+
+2022-12-26 16:12:53  OnProcess
+
+2022-12-26 16:12:52  OnProcess
+
+2022-12-26 16:12:51  OnProcess
+
+2022-12-26 16:12:50  OnProcess
+
+2022-12-26 16:12:50  Process started.
+
+2022-12-26 16:12:50  Process started.
+
+2022-12-26 16:12:50  Process started.
+
+2022-12-26 16:12:50  oApplication just before end_object
+
+2022-12-26 16:12:50  oApplication Start
+
+2022-12-26 16:11:19.128  OnProcess
+
+2022-12-26 16:09:50.791  OnProcess
+
+2022-12-26 16:09:50.782  Process started.
+
+2022-12-26 16:09:50.772  Process started.
+
+2022-12-26 16:09:50.745  Process started.
+
+2022-12-26 16:09:50.742  oApplication just before end_object
+
+2022-12-26 16:09:00.92  oApplication Start
+

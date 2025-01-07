@@ -1,0 +1,76 @@
+Use Dfbitmap.pkg
+Use cApplication.pkg
+Use WinServiceLanguageConstants.inc
+
+Class cExitButton is a Button
+    Procedure Construct_Object
+        Forward Send Construct_Object
+
+        Set Label to C_$OK
+        Set peAnchors to anBottomRight
+    End_Procedure
+
+    Procedure OnClick
+        Send Exit_Application
+    End_Procedure
+End_Class
+
+// To model these objects in the Studio, comment out the Procedure ShowMainCommandLinePane
+// row and the end_procedure line.
+Procedure ShowMainCommandLinePanel Boolean bIsInstalledAsService
+    String sText
+
+    Object oMainCommandLinePanel is a BasicPanel
+        If (bIsInstalledAsService = False) Begin
+            Set Size to 122 256
+        End
+        Else Begin
+            Set Size to 80 256
+        End
+        Set Label to (CS_WSUCmdLineHeaderText * psProduct(ghoApplication))
+        Set Locate_Mode to Center_On_Screen
+        Set Maximize_Icon to False
+        Set Minimize_Icon to False
+        Set piMinSize to (Hi(Size(Self)) - 25) (Low(Size(Self)))
+        Set piMaxSize to (Hi(Size(Self)) + 50) (Low(Size(Self) + 200))
+        Set Color to clWhite
+
+        Object oBitmap is a BitmapContainer
+            Set Bitmap to "Stop048N32.bmp"
+            Set Border_Style to Border_None
+            Set Bitmap_Style to Bitmap_Center
+            Set Color to clWhite
+            Set Size to 24 28
+            Set Location to 11 9
+        End_Object
+
+        Object oText is a TextBox
+            Set Location to 12 41
+            Set Auto_Size_State to False
+            Set Justification_Mode to JMode_Left
+            Set Color to clWhite
+            Set Size to 76 200
+            Set peAnchors to anAll
+        End_Object
+
+        Object oLowerBackground_tb is a Container3d
+            Set Size to 28 265
+            Set Location to 94 0
+            Set Color to clBtnFace
+            Set peAnchors to anBottomLeftRight
+            Set Border_Style to Border_None
+
+            Object oOk is a cExitButton
+                Set Location to 7 195
+            End_Object
+
+        End_Object
+
+    End_Object
+
+    Get psCommandLineText of ghoApplication to sText
+    Move (Replaces("\n", sText, Character(13))) to sText
+    Set Value of (oText(oMainCommandLinePanel(Self))) to sText
+
+    Start_UI oMainCommandLinePanel
+End_Procedure

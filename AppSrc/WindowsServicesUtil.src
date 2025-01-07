@@ -1,0 +1,637 @@
+﻿//
+// $Author     : Nils G. Svedmyr, RDC Tools International, <mailto:support@rdctools.com>
+// Web-site    : http://www.rdctools.com
+//
+// NOTE        : This is a "portable program"
+//               It means that you can just copy the program to a customer site's folder,
+//               and the program will automatically "unpack" all necessary files it needs
+//               to run, such as *.OCX and data files. However, you still need to have a proper
+//               DataFlex Client Engine installed on that machine.
+//               You just need to compile the program after you made any service data changes,
+//               so the latest version of the .dat files gets included into the program.
+//
+// The code is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// This is free software; you can redistribute it and/or modify it under the terms of the
+// GNU Lesser General Public License.
+// License: LGPLv3 - GNU LESSER GENERAL PUBLIC LICENSE Version 3 - http://www.gnu.org/licenses/lgpl.txt
+//
+// IMPORTANT! this program should have the following in the programs manifest file:
+//         <v3:trustInfo xmlns:v3="urn:schemas-microsoft-com:asm.v3">
+//             <v3:security>
+//                 <v3:requestedPrivileges>
+//                       <v3:requestedExecutionLevel level="requireAdministrator"></v3:requestedExecutionLevel>
+//                 </v3:requestedPrivileges>
+//             </v3:security>
+//         </v3:trustInfo>
+// ..where the important bit is the "requireAdministrator" word (Usually it is "asInvoker")
+//   However, this sadly means that the Studio can't load this program into the debugger
+// ..or you could change it back to "asInvoker", but you then always needs to start the program "As Administrator" by, right-clicking the .exe file.
+//
+Use DFAllEnt.pkg
+Use cCJStandardCommandBarSystem.pkg
+Use cRDCSkinComboBoxCJMenuItem.pkg
+
+Use cDigitalSoftwareCertificate.pkg
+Use cCJCommandBarSystem.pkg
+
+Object oDigitalSoftwareCertificate is a cDigitalSoftwareCertificate
+    Move Self to ghoDigitalSoftwareCertificate
+
+    // Set pbWarnIfNotDigitallySigned = True if you like to have a warning when the
+    // program is started, but the program has not been digitally signed.
+    // Only applies when run outside the Studio.
+    Set pbWarnIfNotDigitallySigned to False
+
+    // This message does the actual checking for a valid digital certificate.
+    // If the program has been tampered with e.g. it has been infected by a virus,
+    // the user will get a warning and the program will be aborted.
+//    Send ValidateProgramOnStartup
+
+End_Object
+
+Use vWin32fh.pkg
+
+Object oHtmlHelp is a cHtmlHelp
+    Set pbAlwaysOnTop to False
+End_Object
+
+Use WinServiceLanguageConstants.inc
+Use cWindowsServiceFunctions.pkg
+Use GlobalDateTimeFunctions.pkg   
+Use YesNoBox_Adm.dg
+
+Object oApplication is a cApplication
+    Set psCompany  to "RDC Tools International"
+    Set psProduct  to CS_WSUProductName
+    Set psVersion  to (String(piVersionMajor(phoVersionInfo(Self))) + "." + String(piVersionMinor(phoVersionInfo(Self))))
+    Set psAutoOpenWorkspace to ""
+    Set peHelpType to htHtmlHelp
+    Set psHelpFile to "DFWinServiceManager.chm"
+
+    Property Handle phoMainDD
+
+    Procedure OnCreate
+        Integer eOpened iRetval iNumArgs
+        String sPath
+        Boolean bIsAdminMode
+        Handle hoCmdLine        
+        
+        Get phoCommandLine to hoCmdLine
+        Get CountOfArgs of hoCmdLine to iNumArgs
+        Get IsAdministrator to bIsAdminMode
+        // We allow for passing a parameter on the command line,
+        // in case we will restart the program in Admin mode.
+        // It doesn't matter what the command line parameter is, as long as something is passed.
+        If (bIsAdminMode = False and iNumArgs <> 0) Begin
+            Send RelaunchAsAdministrator
+        End
+        
+        If (bIsAdminMode = False) Begin
+//        If (bIsAdminMode = False and not(IsDebuggerPresent())) Begin
+            Get YesNo_BoxAdm (CS_WSUMainProgramParam1 + "\n\n" + CS_WSUMainProgramParam3) "" to iRetval
+//            Get YesNo_BoxAdm (CS_WSUMainProgramParam1 + "\n\n" + CS_WSUMainProgramParam3) "" MB_DEFBUTTON1 to iRetval
+            If (iRetval = MBR_Yes) Begin
+                Send RelaunchAsAdministrator
+            End  
+            Else If (iRetval = MBR_Cancel) Begin
+                Abort
+            End
+        End
+
+        Get OpenWorkspaceFile of (phoWorkspace(ghoApplication)) "config.ws" to eOpened
+        If (eOpened <> wsWorkspaceOpened) Begin
+            Get ApplicationPath of ghoWindowsServiceFunctions     to sPath
+            Set psHome          of (phoWorkspace(ghoApplication)) to sPath
+            Set psProgramPath   of (phoWorkspace(ghoApplication)) to sPath
+            Set psDataPath      of (phoWorkspace(ghoApplication)) to sPath
+            Set psFileList      of (phoWorkspace(ghoApplication)) to sPath
+            Set psHelpPath      of (phoWorkspace(ghoApplication)) to sPath
+            Set psBitmapPath    of (phoWorkspace(ghoApplication)) to sPath
+        End
+
+        // This will create the database if it doesn't exist...(+ other files used by the program.)
+        If (not(IsDebuggerPresent())) Begin
+            // Check that files exists, else create them:
+            Send DoCheckFile CS_DoTouchExeFileExe                         "Resource:res_Install_DoTouchExeFile"     False
+            // CodeJock components for DataFlex 19.1:
+//            Send DoCheckFile "Codejock.SkinFramework.Unicode.v18.3.0.ocx" "Resource:res_Install_SkinOCXFile"        False
+//            Send DoCheckFile "Codejock.CommandBars.Unicode.v18.3.0.ocx"   "Resource:res_Install_CommandBarsOCXFile" False
+//            Send DoCheckFile "Codejock.ReportControl.Unicode.v18.3.0.ocx" "Resource:res_Install_CodeJockReport"     False
+
+
+            // Check database files:
+            Send DoCheckFile "Filelist.cfg"   "Resource:res_Install_FilelistCFGFile"     True
+            Send DoCheckFile "winservice.dat" "Resource:res_Install_WinserviceDatFile"   True
+            Send DoCheckFile "winservice.hdr" "Resource:res_Install_WinserviceHdrFile"   True
+            Send DoCheckFile "winservice.k1"  "Resource:res_Install_WinserviceK1File"    True
+            Send DoCheckFile "winservice.tag" "Resource:res_Install_WinserviceTagFile"   True
+
+            Send DoCheckFile "CodeMast.dat"   "Resource:res_Install_CodeMastDatFile"     True
+            Send DoCheckFile "CodeMast.hdr"   "Resource:res_Install_CodeMastHdrFile"     True
+            Send DoCheckFile "CodeMast.k1"    "Resource:res_Install_CodeMastK1File"      True
+            Send DoCheckFile "CodeMast.tag"   "Resource:res_Install_CodeMastTagFile"     True
+            Send DoCheckFile "CodeType.dat"   "Resource:res_Install_CodeCodeTypeDatFile" True
+            Send DoCheckFile "CodeType.hdr"   "Resource:res_Install_CodeCodeTypeHdrFile" True
+            Send DoCheckFile "CodeType.k1"    "Resource:res_Install_CodeCodeTypeK1File"  True
+            Send DoCheckFile "CodeType.tag"   "Resource:res_Install_CodeCodeTypeTagFile" True
+
+        End
+
+    End_Procedure
+
+    Procedure OnWorkspaceOpened
+        String sParam
+        Handle hoCmdLine
+        
+        Forward Send OnWorkspaceOpened
+        
+        Get phoCommandLine to hoCmdLine
+        Get Argument of hoCmdLine 1 to sParam
+        If (lowercase(sParam) = "/h" or Lowercase(sParam) = "-h" or Lowercase(sParam) = "f1" or Lowercase(sParam) contains "help") Begin
+            Send DoDisplayTOC of ghoHtmlHelp
+        End
+    End_Procedure
+
+    Procedure RelaunchAsAdministrator
+        String sExe sPath
+        Handle hInstance
+        
+        Get GetApplicationPath to sPath 
+        Get GetApplicationFileName to sExe
+        Move (ShellExecute(0, "runas", sExe,"", sPath, SW_SHOW)) to hInstance
+        If (hInstance <= 32) Begin
+            Send Stop_Box "Unable to run as Administrator."
+        End
+        Else Begin
+            Abort
+        End
+    End_Procedure
+
+    // Dummy message. For the compiler to embed files into the program as resources.
+    { Visibility=Private MethodType=Event NoDoc=True }
+    Procedure _DummyEmbedFiles
+        // The default path for and include_resource command is the Data folder. So anything else needs a pathing.
+        // Relative pathing to the Data folder is OK.
+        IncludeBinaryResource ..\Programs\DoTouchExeFile.exe as res_Install_DoTouchExeFile
+
+//        IncludeBinaryResource ..\Programs\Codejock.SkinFramework.Unicode.v18.3.0.ocx as res_Install_SkinOCXFile
+//        IncludeBinaryResource ..\Programs\Codejock.CommandBars.Unicode.v18.3.0.ocx   as res_Install_CommandBarsOCXFile
+//        IncludeBinaryResource ..\Programs\Codejock.ReportControl.Unicode.v18.3.0.ocx as res_Install_CodeJockReport
+
+//        IncludeBinaryResource ..\Programs\iTunesB.cjstyles as res_Install_SkinFileB
+//        IncludeBinaryResource ..\Programs\iTunesN.cjstyles as res_Install_SkinFileN
+
+        // It doesn't work to include the filelist.cfg by the compiler when it is open in the Studio,
+        // so use a copy of it.
+        IncludeBinaryResource ..\Data\Deploy\Filelist.cfg  as res_Install_FilelistCFGFile
+        IncludeBinaryResource WinService.dat as res_Install_WinserviceDatFile
+        IncludeBinaryResource WinService.hdr as res_Install_WinserviceHdrFile
+        IncludeBinaryResource WinService.k1  as res_Install_WinserviceK1File
+        IncludeBinaryResource WinService.tag as res_Install_WinserviceTagFile
+
+        IncludeBinaryResource CodeMast.dat as res_Install_CodeMastDatFile
+        IncludeBinaryResource CodeMast.hdr as res_Install_CodeMastHdrFile
+        IncludeBinaryResource CodeMast.k1  as res_Install_CodeMastK1File
+        IncludeBinaryResource CodeMast.tag as res_Install_CodeMastTagFile
+        IncludeBinaryResource CodeType.dat as res_Install_CodeCodeTypeDatFile
+        IncludeBinaryResource CodeType.hdr as res_Install_CodeCodeTypeHdrFile
+        IncludeBinaryResource CodeType.k1  as res_Install_CodeCodeTypeK1File
+        IncludeBinaryResource CodeType.tag as res_Install_CodeCodeTypeTagFile
+    End_Procedure
+
+    // Check if the file exists in the Programs/Data folder (or current folder if no workspace used),
+    // else create it from memory as it has been compiled into the current program:
+    Procedure DoCheckFile String sFileName String sResourceName Boolean bDataFile
+        String sPath
+        Boolean bExists
+        Get GetApplicationPath of ghoApplication to sPath
+        If (bDataFile = True) Begin
+            Get psDataPath of (phoWorkspace(ghoApplication)) to sPath
+        End
+        Get vFolderFormat sPath to sPath
+        Move (sPath + sFileName) to sFileName
+        Get vFilePathExists sFileName to bExists
+
+        If (bExists = False) Begin
+            // Read from memory & create file on disk.
+            Send CreateFileFromMemory of ghoWindowsServiceFunctions sResourceName sFileName
+        End
+    End_Procedure
+
+    // The Microsoft documentation on external application manifest files would lead one to conclude that
+    // as long as an EXE does not have an embedded manifest, an external manifest will be read and used instead.
+    // The truth, however, is that manifests are cached in the "Activation Context Cache" (Windows ACC).
+    // The ACC is a mysterious entity that is not discussed in the MSDN documentation. This cache is resident
+    // in memory and there is no way to give a command to flush it. Sometimes a reboot flushes it, sometimes it doesn't.
+    // There is one secret way of making the loader refresh itself and that is to change the file's "Date Modified Stamp".
+    // However, we cannot change that file property while running the program because it is in use! (Catch 22).
+    // Therefor we exit the program, run the CS_DoTouchExeFileExe utility that modifies the date for us &
+    // then restarts this program.
+    Procedure ChangeModificationDateStamp String sFileName
+        String sPath
+
+        // Remove the ".manifest" extension from filename.
+        If (sFileName contains ".Manifest") Begin
+            Move (Replace(".Manifest", sFileName, ".manifest")) to sFileName
+        End
+        Move (Replace(Lowercase(CS_ManifestExtension), sFileName, "")) to sFileName
+        Get ParseFolderName sFileName to sPath
+        Get vFolderFormat sPath to sPath
+        Get ParseFileName sFileName to sFileName
+
+        Runprogram Shell Background (sPath + CS_DoTouchExeFileExe) sFileName
+        Send Exit_Application
+    End_Procedure
+
+End_Object
+
+Use cCJSkinFramework.pkg
+Object oCJSkinFramework is a cCJSkinFramework
+    Set pbLoadPreference to True
+//    Set psSkinFile to "iTunesB.cjstyles"
+//    Set psSkinIni to "Square Buttons Light.ini"
+End_Object
+
+Use cToolTipController.pkg
+Object oToolTipController is a cToolTipController
+    Move Self to ghoToolTipController
+    Set piMaxWidth to 400
+    Set piDurationPopup to 14000    // 14 seconds, needed for long tooltips.
+    Set pbUsePrefix to True
+End_Object
+
+Use oEditContextMenu.pkg
+Use oDEOEditContextMenu17.pkg
+
+Open WinService
+
+Object oMain is a Panel
+    Set Label to ((psProduct(ghoApplication)) * CS_WSUMainProgramHeader2)
+    Set Size to 310 455
+    Set piMinSize to 310 415
+    Set Location to 1 1
+    Set Maximize_Icon to False
+
+    Object oCommandBarSystem is a cCJCommandBarSystem
+        Set pbTimerUpdate to True
+        Set pbSyncFloatingToolbars to False
+        Set pbAutoResizeIcons to True
+
+        Property Boolean pbVerboseCertificateState False
+        Property Integer piDesiredIconSize 32 // Default icon size
+
+        Set pbLargeIcons to True
+
+        Procedure OnCreateCommandBars
+            Handle hoOptions
+            Get OptionsObject to hoOptions
+            Forward Send OnCreateCommandBars
+        End_Procedure
+
+        Procedure OnCreateCommandBars
+            Handle hoOptions
+
+            Forward Send OnCreateCommandBars
+            Get OptionsObject to hoOptions
+            Send ComSetIconSize of hoOptions False (piDesiredIconSize(Self)) (piDesiredIconSize(Self))  // Set icon size for Toolbar buttons.
+            Send DoChangeToolTipFormat
+        End_Procedure
+
+        Procedure DoChangeToolTipFormat
+            Variant vToolTip
+            Handle  hoObject
+
+            Get ComToolTipContext to vTooltip
+            Get Create (RefClass(cCJToolTipContext)) to hoObject
+            Set pvComObject of hoObject to vTooltip
+
+            Set ComStyle            of hoObject to xtpToolTipOffice2007
+            Send ComShowTitleAndDescription of hoObject True xtpToolTipIconInfo
+            Set ComShowOfficeBorder of hoObject to True
+            Set ComShowShadow       of hoObject to True
+            // Set the max width for a tooltip. 250 just seems to be a good
+            // compromise. After 250 pixels the text will wrap to the next line automatically.
+            Set  ComMaxTipWidth      of hoObject to 250 // In pixels
+            Send Destroy of hoObject
+        End_Procedure
+
+        Object oFind_ToolBar is a cCJToolbar
+            Set psTitle to "Finding Toolbar"
+            Set piBarID to 1
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to False
+
+            Object oFindFirstTool is a cCJFindFirstMenuItem
+            End_Object
+
+            Object oFindPreviousTool is a cCJFindPreviousMenuItem
+            End_Object
+
+            Object oFindMenuTool is a cCJFindMenuItem
+            End_Object
+
+            Object oFindNextTool is a cCJFindNextMenuItem
+            End_Object
+
+            Object oFindLastTool is a cCJFindLastMenuItem
+            End_Object
+
+        End_Object
+
+        Object oFile_ToolBar is a cCJToolbar
+            Set psTitle to "Data Entry Toolbar"
+            Set piBarID to 2
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to True
+
+            Object oSaveToolItem is a cCJSaveMenuItem
+            End_Object
+
+            Object oClearToolItem is a cCJClearMenuItem
+            End_Object
+
+            Object oDeleteToolItem is a cCJDeleteMenuItem 
+                Set psImage to "ActionDelete.ico"
+            End_Object
+
+        End_Object
+
+        Object oDigitalSigning_Toolbar is a cCJToolbar
+            Set psTitle to "Digital Certificate Toolbar"
+            Set pbEnableDocking to False
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to True
+            Set peStretched to stStretchShared
+
+            Object oValidateFile_MenuItem is a cCJMenuItem
+                Set psCaption to "Check"
+                Set psCaption to CS_WSUValidateCheck
+                Set psToolTip to CS_WSUValidateCheckHelp
+                Set psDescription to CS_WSUValidateCheckDesc
+                Set psImage to "DigitalVerification.ico"
+                Set pbActiveUpdate to True
+                Procedure OnExecute Variant vCommandBarControl
+                    tCertificateParams CertificateParams
+
+                    Forward Send OnExecute vCommandBarControl
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Path to CertificateParams.sProgramPath
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Name to CertificateParams.sFileName
+                    Get pbVerboseCertificateState to CertificateParams.bVerbose
+
+                    Send ValidateFile of ghoDigitalSoftwareCertificate CertificateParams
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+                    String sPath sFilename
+                    Boolean bExists bIsSignToolProgram
+
+                    Get IsSignToolProgram   of ghoDigitalSoftwareCertificate to bIsSignToolProgram
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Path to sPath
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Name to sFilename
+                    Get vFolderFormat sPath to sPath
+                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True and bIsSignToolProgram = True)
+                End_Function
+
+            End_Object
+
+            Object oSignFile_MenuItem is a cCJMenuItem
+                Set psCaption to "Sign"
+                Set psCaption to CS_WSUSignFile
+                Set psToolTip to CS_WSUSignFileHelp
+                Set psDescription to CS_WSUSignFileDesc
+                Set psImage to "DigitallySign.ico"
+                Set pbActiveUpdate to True
+
+                Procedure OnExecute Variant vCommandBarControl
+                    tCertificateParams      CertificateParams
+                    tCertificateCredentials CertificateCredentials
+
+                    Forward Send OnExecute vCommandBarControl
+
+                    // Mandatory variables that needs to be set when signing a file:
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Path to CertificateParams.sProgramPath
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Name to CertificateParams.sFileName
+                    Move True to CertificateParams.bUseTimeStamp
+
+                    // Optional parameters:
+                    Get pbVerboseCertificateState to CertificateParams.bVerbose
+
+                    Send SignFile of ghoDigitalSoftwareCertificate CertificateParams
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+                    String sPath sFilename
+                    Boolean bExists bIsSignToolProgram
+
+                    Get IsSignToolProgram   of ghoDigitalSoftwareCertificate to bIsSignToolProgram
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Path to sPath
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Name to sFilename
+                    Get vFolderFormat sPath to sPath
+                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True and bIsSignToolProgram = True)
+                End_Function
+
+            End_Object
+
+            Object oVerboseState_ToolButton is a cCJMenuItem
+                Set peControlType to xtpControlCheckBox
+                Set psCaption to CS_WSUVerboseState
+                Set psToolTip to CS_WSUVerboseStateHelp
+                Set psDescription to CS_WSUVerboseStateDesc
+                Set pbActiveUpdate to True
+                Set pbControlBeginGroup to True
+
+                Procedure OnExecute Variant vCommandBarControl
+                    Boolean bChecked
+                    Forward Send OnExecute vCommandBarControl
+                    Get pbChecked to bChecked
+                    Set pbChecked to (not(bChecked))
+                    Set pbVerboseCertificateState to (not(bChecked))
+                    Send WriteDword of ghoApplication "Preferences" "VerboseState" (not(bChecked))
+                End_Procedure
+
+                Function IsEnabled Returns Boolean
+                    String sPath sFilename
+                    Boolean bExists
+
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Path to sPath
+                    Get Field_Current_Value of (phoMainDD(ghoApplication)) Field WinService.Program_Name to sFilename
+                    Get vFolderFormat sPath to sPath
+                    Get vFilePathExists (sPath + sFilename) to bExists
+
+                    Function_Return (bExists = True)
+                End_Function
+
+                Procedure OnCreateControl Handle hoObj
+                    DWord dwVerbose
+                    Forward Send OnCreateControl hoObj
+                    Get ReadDword of ghoApplication "Preferences" "VerboseState" 0 to dwVerbose
+                    Set pbChecked to dwVerbose
+                    Set pbVerboseCertificateState to dwVerbose
+                End_Procedure
+
+            End_Object
+
+        End_Object
+
+//        Object oConfigure_Toolbar is a cCJToolbar
+//            Set psTitle to "Configure ToolBar"
+//            Set pbCloseable to False
+//            Set pbCustomizable to False
+//            Set pbHideWrap to True
+//            Set pbDockNextTo to False
+//
+//            Object oSkinsDummyMenuItem is a cCJMenuItem
+//                Set psImage to "VisualSettings.ico"
+//                Set psCaption to "Skin"
+//                Set psCaption to CS_WSUSkinTitle
+//                Set psToolTip to CS_WSUSkinHelp
+//                Set peControlStyle to xtpButtonIconAndCaption
+//                Set peControlType to xtpControlLabel
+//                Set pbControlBeginGroup to True
+//            End_Object
+//
+//            Object oSkinsMenuItem is a cSkinComboBoxCJMenuItem
+//            End_Object
+//
+//        End_Object
+
+        Object oHelp_Toolbar is a cCJToolbar
+            Set psTitle to "Help ToolBar"
+            Set piBarID to 9
+            Set pbCloseable to False
+            Set pbCustomizable to False
+            Set pbHideWrap to True
+            Set peStretched to stStretchShared
+
+            Object oAdminTextMenuItem is a cCJMenuItem
+                Set peControlType to xtpControlLabel
+                Set psCaption to CS_WSUAdminRightsOK
+                Set psImage to "AdminHappy.ico"
+                Set psImageDisabled to "AdminSad.ico"
+
+                Procedure OnCreateControl Handle hoObj
+                    Boolean bIsAdminMode
+                    String sAdminText
+
+                    Get IsAdministrator of ghoApplication to bIsAdminMode
+                    If (bIsAdminMode = True) Begin
+                        Move CS_WSUAdminRightsOK to sAdminText
+                    End
+                    Else Begin
+                        Set pbEnabled to False
+                        Set psImageDisabled to "AdminSad.ico"
+                        Move (CS_WSUAdminRightsNotOK + "!") to sAdminText
+                        Set psToolTip to (CS_WSUMainProgramParam1 * "Please click the 'Restart as Admin' button, to relaunch the program.")
+                    End
+                    Set psCaption to sAdminText
+                    Forward Send OnCreateControl hoObj
+                End_Procedure
+            End_Object
+
+            Object oRelaunchAdminTextMenuItem is a cCJMenuItem
+                Set psCaption to "Restart as Admin"
+                Set psImage to "shield-ok.ico"
+                Set peControlStyle to xtpButtonIconAndCaption
+
+                Procedure OnCreateControl Handle hoObj
+                    Boolean bIsAdminMode
+                    Get IsAdministrator of ghoApplication to bIsAdminMode
+                    Set pbEnabled to (bIsAdminMode = False)
+                End_Procedure
+                
+                Procedure OnExecute Variant vCommandBarControl
+                    Forward Send OnExecute vCommandBarControl
+                    Send RelaunchAsAdministrator of ghoApplication
+                End_Procedure
+
+            End_Object
+
+            Object oAbout_MenuItem is a cCJMenuItem
+                Set psCaption to C_$CaptionAbout
+                Set psToolTip to C_$ToolTipAbout
+                Set psDescription to C_$DescAbout
+                Set psImage to "ActionAbout.ico"
+                Set pbControlBeginGroup to True
+                Procedure OnExecute Variant vCommandBarControl
+                    Forward Send OnExecute vCommandBarControl
+                    Send Activate_About of (Client_Id(ghoCommandBars))
+                End_Procedure
+            End_Object
+
+            Object oHelpMenuItem is a cCJHelpMenuItem
+                Set peControlType to xtpControlSplitButtonPopup
+                Set psCaption to C_$CaptionHelp
+                Set psToolTip to C_$ToolTipHelp
+                Set psDescription to C_$DescHelp
+
+                Object oHelpMenuItemLocal is a cCJHelpMenuItem
+                    Set psCaption to CS_WSULocalHelpCaption
+                End_Object
+
+                Object oHelpMenuItemInternetBrowser is a cCJMenuItem
+                    Set psCaption to CS_WSUOnlineHelpCaption
+                    Set psImage to "ActionHelpInternet.ico"
+                    Procedure OnExecute Variant vCommandBarControl
+                        Runprogram Shell Background "https://www.rdctools.com/HTMLHelpWindowsServices/DataFlex_Windows_Services_Manager.html"
+                    End_Procedure
+
+                End_Object
+
+            End_Object
+
+            Object oExitMenuItem is a cCJExitMenuItem
+                Set pbControlBeginGroup to True
+                Set psImage to "ActionExit.ico"
+                Set psToolTip to C_$ToolTipExit
+                Set psDescription to C_$DescExit
+            End_Object
+
+        End_Object
+
+        Object oStatusBar is a cCJStatusBar
+
+            Object oStatusPane1 is a cCJStatusBarPane
+                Set piID to sbpIDIdlePane
+                Set pbStyleStretch to True
+            End_Object
+
+            Object oStatusPane2 is a cCJStatusBarPane
+                Set phoViewPane to Self
+                Set pbStyleStretch to True
+            End_Object
+
+        End_Object
+
+    End_Object
+
+    Object oClientArea is a ClientArea
+        Use StdAbout.pkg
+//        Use Dd_debug.dg
+        // If you are only going to use one DataFlex program as a service, you might want to
+        // use the program without a database; then use the WindowsServicesUtilSDI.src program instead.
+        Use dbWindowsServicesTest.vw
+        Use LogFileDialog.dg
+        Use YesNoBox_Adm.dg
+
+        Procedure Activate_About
+            Send DoAbout "" "" ("Copyright 2014-2025" * psCompany(ghoApplication)) "Author: Nils Svedmyr" "WindowsServices80x80.bmp" "E-mail: mailto:support@rdctools.com" ("This tool was created with DataFlex" * String(C_DFVersion) * "from Data Access Worldwide. Please visit http://www.dataaccess.com for a free personal copy of DataFlex.")
+        End_Procedure
+
+    End_Object
+
+End_Object
+
+// If you get this compile error:
+//   - Error 4295: C:\Projects\DF20\WindowsServices\AppSrc\WindowsServicesUtil.src (ln 635) Can't include resource ..\PROGRAMS\DOTOUCHEXEFILE.EXE
+//   You need to compile the DoTouchExeFile.src first.
+Start_UI

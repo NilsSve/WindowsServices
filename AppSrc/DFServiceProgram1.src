@@ -1,0 +1,27 @@
+//****************************************************************************
+// $Module type: Program
+// $Module name: DFServiceProgram1.src
+// $Author     : Nils Svedmyr, RDC Tools International
+// Created     : 2014-08-08 @ 14:59
+//
+// Description : Template for building a Windows Service program in DataFlex.
+//
+// $Rev History:
+//    2014-08-08  Module header created
+//    2019-09-12 Changed VDF references/package names from VDF to DF.
+//****************************************************************************
+Use cApplicationDFService.pkg
+Use DFService.pkg
+
+Object oApplication is a cApplicationDFService
+    Send LogMessage "oApplication Start"
+
+    #Include DFServiceProgram1.pkg
+        
+    Send LogMessage "oApplication just before end_object"
+End_Object
+
+If (pbCommandLineParameter(ghoApplication) = True) Begin
+    Send LogMessage of ghoApplication "After End_Object ghoApplication"
+    Send DoProcess of (oMyService(ghoApplication))
+End

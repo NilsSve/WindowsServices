@@ -1,0 +1,151 @@
+//****************************************************************************
+// $Module type: Include file.
+// $Module name: cWindowsServiceFunctions.inc
+// $Author     : Nils Svedmyr, RDC Tools International, <mailto:support@rdctools.com>
+//               Portions by Bernhard Ponemayr and Allan Kim Eriksen.
+// Web-site    : http://www.rdctools.com
+// Created     : 2019-10-17 @ 11:30
+//
+// Description : Include files with constant declarations etc for the cWindowsFunctions.pkg file
+//
+//               An object of the cWindowsServiceFunctions class is created at the bottom
+//               of that package. 
+//
+Use cApplication.pkg
+Use VdfBase.pkg
+Use Winuser.pkg
+Use cRegistry.pkg
+Use seq_chnl.pkg
+Use Dfcursor.pkg
+Use vWin32fh.pkg
+Use cExternalProgramResult.pkg  
+Use WinServiceLanguageConstants.inc
+
+// ***** CONSTANTS & STRUCT DECLARATIONS *****
+//
+Define CS_DFTestProgram             for "DFServiceProgram1.exe"
+Define CS_DFTestServiceName         for "DataFlex Service 1"
+Define CS_DebugMode                 for "debug"
+
+// This will get added to the service program name (without the .exe part),
+// and created in the Programs folder:
+#IFNDEF CS_ServiceLogFile
+    Define CS_ServiceLogFile        for "_Logfile.txt"
+#ENDIF
+
+Define CS_NSSM_Program              for "nssm.exe"
+Define CS_DoTouchExeFileExe         for "DoTouchExeFile.exe"
+Define CS_WindowsServicesManager    for "Services.msc"
+Define CS_InstSrvProgramName        for "instsrv.exe"
+Define CS_SrvAnyProgramName         for "srvany.exe"
+Define CS_SCProgram                 for "sc.exe"
+Define CS_WindowsEventViewer        for "eventvwr.exe"   
+Define CS_TasklistProgram           for "tasklist"
+Define CS_NetProgram                for "net"
+Define CS_NetStartParam             for "start"
+Define CS_FITasklistParam           for "/FI"
+Define CS_TasklistImageNameParam    for "IMAGENAME eq"  
+Define CS_TasklistConsole           for "Console"
+Define CS_TasklistServices          for "Services"
+Define CS_ServiceRunning            for "Service Running"
+Define CS_ServiceStopped            for "Service Stopped"
+Define CS_ServiceNotOpen            for "Can't Open Service!"
+Define CR_LF                        for (Character(13) + Character(10))
+
+Define CI_TasklistRunError          for -1
+Define CI_TasklistRunAsService      for 1
+Define CI_TasklistRunAsConsole      for 2
+
+Define CS_RegistryProfileImagePath  for "ProfileImagePath"
+Define CS_RegistryEnumUserPath      for "SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" 
+Define CS_RegistryServiceInstalled  for "SYSTEM\CurrentControlSet\services"
+Define CS_RegistryParametersKey     for "Parameters"
+Define CS_RegistryApplicationKey    for "Application"
+
+Define CS_ServiceInstallRequireAdminRights for "Administrator access is needed to install a service"
+Define CS_ServiceRemoveRequireAdminRights  for "Administrator access is needed to remove a service"
+
+// NSSM parameters:
+Define CS_NSSM_StartText            for "Start"         // Service startup type.
+Define CS_NSSM_Stoptext             for "Stop"          // Stop service
+Define CS_NSSM_Install              for "Install"       // Install program as a Windows service
+Define CS_NSSM_Remove               for "Remove"        // Remove service
+Define CS_NSSM_Restart              for "Restart"       // Restart service
+Define CS_NSSM_Confirm              for "confirm"       // To remove a service without confirmation from the GUI.
+Define CS_NSSM_NameText             for "Name"          // Service key name.
+Define CS_NSSM_DisplayNameText      for "DisplayName"   // Service display name.
+Define CS_NSSM_DescriptionText      for "Description"   // Service description.
+Define CS_NSSM_ImagePathText        for "ImagePath"     // Path to the service executable.
+Define CS_NSSM_ObjectNameText       for "ObjectName"    // User account which runs the service.
+Define CS_NSSM_TypeText             for "Type"          // Service type.
+Define CS_NSSM_AppPriority          for "AppPriority"   // The priority class of the managed application.
+Define CS_NSSM_ServiceAuto_Start    for "SERVICE_AUTO_START"    // Automatic startup at boot.
+Define CS_NSSM_ServiceDelayed_Start for "SERVICE_DELAYED_START" // Delayed startup at boot.
+Define CS_NSSM_ServiceDemand_Start  for "SERVICE_DEMAND_START"  // Manual service startup.
+Define CS_NSSM_ServiceDisabled      for "SERVICE_DISABLED"      // The service is disabled.
+Define CS_ManifestExtension         for ".manifest"
+
+#IFNDEF CI_FNull
+    Define CI_FNull for |CI$0
+#ENDIF
+
+// Struct used to create a service
+#IFNDEF _struct_tNSSMWinService
+    Struct tNSSMWinService
+        String sServiceName
+        String sProgramName
+        String sProgramPath
+        String sDescription
+        String sAccountName
+        String sPw
+        String sCmdLineParam
+    End_Struct
+#ENDIF
+
+// Struct used to return value from service call function
+// The iRetval <> 0 if an error occured.
+#IFNDEF _struct_tNSSMReply
+    Struct tNSSMReply
+        Integer iRetval
+        String  sRetval
+    End_Struct
+#ENDIF
+
+// External Functions:
+#IFNDEF GET_DFServiceSleep
+External_Function DFServiceSleep "Sleep" kernel32.dll ;
+    Integer lMilliseconds ;
+    Returns Integer
+#ENDIF
+
+#IFNDEF get_WINAPI_NetEnumerateServiceAccounts
+External_Function WINAPI_NetEnumerateServiceAccounts "NetEnumerateServiceAccounts" Netapi32.dll ;
+    Pointer lpServerName ;
+    DWord dwFlags ;
+    DWord dwAccountsCount ;
+    Returns Integer // PZPWSTR *Accounts
+#ENDIF
+
+//#IFNDEF get_WINAPI_NetQueryDisplayInformation
+External_Function WINAPI_NetQueryDisplayInformation "NetQueryDisplayInformation" netapi32.dll ;
+    Pointer lpServerName ;
+    DWord dwLevel ;
+    DWord dwIndex ;
+    DWord dwEntriesRequested ;
+    DWord dwPreferredMaxlength ;
+    Returns Integer
+
+    Define CI_Net_Display_User    for 1
+    Define CI_Net_Display_Machine for 2
+    Define CI_Net_Display_Group   for 3
+//#ENDIF
+
+
+// ***** COMMANDS                        *****
+//
+#COMMAND IncludeBinaryResource _TR "AS" _R
+  #Set Q$ DF_RESOURCE_TYPE_BINARY   // default to binary.
+  #Replace !3.RSC |CI!ZR            // create unique resource id.
+  #Resource !1 !Zr !q !3            // register new resource.
+#ENDCOMMAND
+

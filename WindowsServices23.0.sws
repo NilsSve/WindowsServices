@@ -1,0 +1,15 @@
+[Properties]
+Version=23.0
+[WorkspacePaths]
+ConfigFile=.\Programs\Config.ws
+[Conditionals]
+Is$WebApp=False
+Is$Win64=False
+[Libraries]
+Lib2=Libraries\RDCToolsLib\RDCToolsLib23.0.sws
+Lib3=Libraries\DFAbout\DFAbout23.0.sws
+Lib1=Libraries\DigitalCert\DigitalCert23.0.sws
+Lib4=Libraries\vwin32fh\StudioLibrary\vWin32fh-Library-DF23.0.sws
+[Projects]
+Project0=WindowsServicesUtil.src
+Project1=DFServiceProgram1.src

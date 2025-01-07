@@ -1,0 +1,186 @@
+2024-12-25 17:46:34  Exit_Application Service exited
+
+2024-12-25 17:46:31  Before End_Object ghoApplication
+
+2024-12-25 17:46:31  Service process object created (phoDFService).
+
+2024-12-25 17:46:31  Error-Invalid message. MSG_ADD_MDI_DIALOG\n\nTechnical Details\nError Number: 98\nInstruction Address: 13567
+
+2024-12-25 17:46:31  service beginning
+
+2024-12-25 17:46:31  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 15002
+
+2024-12-25 17:46:31  cApplicationDFService is getting created.
+
+2022-12-31 17:37:28.829  In OnProcess
+
+2022-12-31 17:33:24.74  In CheckForEmail
+
+2022-12-31 17:33:14.583  In OnProcess
+
+2022-12-31 17:32:44.582  In CheckForEmail
+
+2022-12-31 17:32:44.578  In OnProcess
+
+2022-12-31 17:32:44.574  DoProcess called
+
+2022-12-31 17:32:35.084  In StartEmailService
+
+2022-12-31 17:32:35.035  Before End_Object ghoApplication
+
+2022-12-31 17:32:35.033  Service process object created (phoDFService).
+
+2022-12-31 17:32:35.024  Error-Invalid message. MSG_ADD_MDI_DIALOG\n\nTechnical Details\nError Number: 98\nInstruction Address: 13567
+
+2022-12-31 17:32:35.021  service beginning
+
+2022-12-31 17:32:35.018  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 15002
+
+2022-12-31 17:32:35.014  cApplicationDFService is getting created.
+
+2022-12-31 17:31:36.55  In CheckForEmail
+
+2022-12-31 17:31:09.204  In OnProcess
+
+2022-12-31 17:30:34.448  DoProcess called
+
+2022-12-31 17:30:13.304  In StartEmailService
+
+2022-12-31 17:30:13.253  Before End_Object ghoApplication
+
+2022-12-31 17:30:13.244  Service process object created (phoDFService).
+
+2022-12-31 17:30:13.242  Error-Invalid message. MSG_ADD_MDI_DIALOG\n\nTechnical Details\nError Number: 98\nInstruction Address: 13567
+
+2022-12-31 17:30:13.239  service beginning
+
+2022-12-31 17:30:13.231  Error-Required message argument missing\n\nTechnical Details\nError Number: 57\nInstruction Address: 15002
+
+2022-12-31 17:30:13.228  cApplicationDFService is getting created.
+
+2022-12-29 15:58:38.239  In StartEmailService
+
+2022-12-29 15:58:38.235  After successful OnWorkspaceOpened
+
+2022-12-29 15:58:28.816  Service process object created (phoDFService).
+
+2022-12-29 15:58:28.788  Before End_Object ghoApplication
+
+2022-12-29 15:58:28.785  cApplicationDFService is getting created.
+
+2022-12-29 15:55:30.779  In StartEmailService
+
+2022-12-29 15:55:30.775  After successful OnWorkspaceOpened
+
+2022-12-29 15:55:25.749  Service rocess object created (phoDFService).
+
+2022-12-29 15:55:25.725  Before End_Object ghoApplication
+
+2022-12-29 15:55:25.722  cApplicationDFService is getting created.
+
+2022-12-29 15:52:20.393  In StartEmailService
+
+2022-12-29 15:52:20.391  After successful OnWorkspaceOpened
+
+2022-12-29 15:52:14.554  Process started.
+
+2022-12-29 15:52:14.527  Process started.
+
+2022-12-29 15:52:14.523  Before End_Object ghoApplication
+
+2022-12-29 15:52:14.509  cApplicationDFService is getting created.
+
+2022-12-29 15:48:13.325  In StartEmailService
+
+2022-12-29 15:48:13.321  After successful OnWorkspaceOpened
+
+2022-12-29 15:48:04.595  Process started.
+
+2022-12-29 15:48:04.567  Process started.
+
+2022-12-29 15:48:04.565  Before End_Object ghoApplication
+
+2022-12-29 15:48:04.562  cApplicationDFService is getting created.
+
+2022-12-29 15:32:30.475  In StartEmailService
+
+2022-12-29 15:32:25.098  After successful OnWorkspaceOpened
+
+2022-12-29 15:31:44.182  Process started.
+
+2022-12-29 15:31:42.952  Process started.
+
+2022-12-29 15:31:39.361  Before End_Object ghoApplication
+
+2022-12-29 15:31:12.138  Before OnWorkspaceOpened
+
+2022-12-26 16:45:34.195  Process started.
+
+2022-12-26 16:45:33.351  Process started.
+
+2022-12-26 16:45:14.031  Exit_Application Service exited
+
+2022-12-26 16:45:08.909  Process started.
+
+2022-12-26 16:36:33.19  Process started.
+
+2022-12-26 16:36:28.047  Process started.
+
+2022-12-26 16:35:56.385  Process started.
+
+2022-12-26 16:35:48.305  Process started.
+
+2022-12-26 16:35:19.069  Exit_Application Service exited
+
+2022-12-26 16:34:56.37  Process started.
+
+2022-12-26 16:32:45.445  Process started.
+
+2022-12-26 16:32:45.421  Process started.
+
+2022-12-26 16:32:31.009  Exit_Application Service exited
+
+2022-12-26 16:32:21.592  Process started.
+
+2022-12-21 20:04:41.759  Exit_Application Service exited
+
+2022-12-21 20:04:35.455  Process started.
+
+2022-12-21 19:54:50.671  Process started.
+
+2022-12-21 19:46:50.597  Process started.
+
+2022-12-21 19:46:21.42  Process started.
+
+2022-12-21 19:44:00.947  Exit_Application Service exited
+
+2022-12-21 19:29:42.394  Exit_Application Service exited
+
+2022-12-21 19:27:00.153  Exit_Application Service exited
+
+2022-12-21 19:26:15.335  Exit_Application Service exited
+
+2022-12-21 18:16:15.25  Exit_Application Service exited
+
+2022-12-21 18:14:09.348  Exit_Application Service exited
+
+2022-12-21 12:38:40.294  Exit_Application Service exited
+
+2022-12-21 10:46:00.661  Exit_Application Service exited
+
+2022-12-21 10:45:08.04  Exit_Application Service exited
+
+2022-12-21 10:41:57.38  Exit_Application Service exited
+
+2022-12-21 10:39:45.49  Exit_Application Service exited
+
+2022-12-21 10:32:52.062  Exit_Application Service exited
+
+2022-12-21 10:31:14.835  Exit_Application Service exited
+
+2022-12-21 10:21:36.555  Exit_Application Service exited
+
+2022-12-21 10:20:05.829  Exit_Application Service exited
+
+2022-12-21 09:51:19.5  Exit_Application Service exited
+

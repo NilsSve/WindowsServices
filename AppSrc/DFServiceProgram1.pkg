@@ -1,0 +1,39 @@
+Use DFService.pkg
+
+Object oMyService is a cDFService
+    // 10000 = 10 seconds.
+    Set piSleepBetweenProcess to 10000
+
+    Open WinService  
+    Open CodeMast
+    Open CodeType     
+
+Use cWinServiceDataDictionary.dd
+    Object oWinServiceDataDictionary is a cWinServiceDataDictionary
+    End_Object
+    
+//    Set Main_DD to oWinServiceDataDictionary
+//    Set Server to oWinServiceDataDictionary
+    
+    Procedure OnProcess
+        Send LogMessage "OnProcess"
+        Send DoMyWork
+    End_Procedure
+
+    // Very meaningless sample code(!)
+    Procedure DoMyWork
+        Integer i iCount
+        Number nVal
+
+        Move 5000 to iCount
+        For i from 0 to iCount
+            Add 50 to nVal
+        Loop
+        
+        If (pbCommandLineParameter(ghoApplication) = True) Begin
+            Send Exit_Application
+        End
+    End_Procedure
+
+End_Object
+
