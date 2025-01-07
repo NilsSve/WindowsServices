@@ -4,14 +4,14 @@
 	<DFLibraryVersion>1</DFLibraryVersion>
 	<libraries>
 		<library>
-			<libraryPath>Libraries\RDCToolsLib\RDCToolsLib24.0.sws</libraryPath>
-			<libraryTimeStamp>2019-09-02T16:33:23</libraryTimeStamp>
-			<libraryID>Lib2</libraryID>
+			<libraryPath>Libraries\DFAbout\DFAbout24.0.sws</libraryPath>
+			<libraryTimeStamp>2025-01-07T14:58:04</libraryTimeStamp>
+			<libraryID>Lib3</libraryID>
 		</library>
 		<library>
-			<libraryPath>Libraries\DFAbout\DFAbout24.0.sws</libraryPath>
-			<libraryTimeStamp>2019-08-15T15:10:39</libraryTimeStamp>
-			<libraryID>Lib3</libraryID>
+			<libraryPath>Libraries\vwin32fh\StudioLibrary\vWin32fh-Library-DF24.0.sws</libraryPath>
+			<libraryTimeStamp>2025-01-07T15:02:23</libraryTimeStamp>
+			<libraryID>Lib4</libraryID>
 		</library>
 	</libraries>
 	<classes>

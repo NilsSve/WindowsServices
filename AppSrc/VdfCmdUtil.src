@@ -234,7 +234,7 @@ Object oApplication is a cApplication
 
     // Dummy message. To tell the compiler to embed a file into the program as a resource.
     Procedure DummyEmbedFile
-        Include_Resource ..\Programs\VdfCmdUtil.exe.manifest as res_Install_ManifestFile Type DF_RESOURCE_TYPE_BINARY
+        Include_Resource ..\AppSrc\VdfCmdUtil.exe.manifest as res_Install_ManifestFile Type DF_RESOURCE_TYPE_BINARY
     End_Procedure
 
 End_Object
