@@ -1,4 +1,4 @@
-//****************************************************************************
+﻿//****************************************************************************
 // $Module type: Class
 // $Module name: cWindowsServiceFunctions.pkg
 // $Author     : Nils Svedmyr, RDC Tools International, <mailto:support@rdctools.com>
@@ -771,7 +771,9 @@ Class cWindowsServiceFunctions is a cObject
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move sValueArray[0] to NSSMWinServiceReply.sServiceName
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move sValueArray[0] to NSSMWinServiceReply.sServiceName
+        End
 
         // Service description.
         Move ("get" * sServiceName * CS_NSSM_DescriptionText) to sParams
@@ -779,23 +781,27 @@ Class cWindowsServiceFunctions is a cObject
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move sValueArray[0] to NSSMWinServiceReply.sDescription
-
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move sValueArray[0] to NSSMWinServiceReply.sDescription
+        End
         // User account which runs the service.
         Move ("get" * sServiceName * CS_NSSM_ObjectNameText) to sParams
         Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move sValueArray[0] to NSSMWinServiceReply.sAccountName
-
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move sValueArray[0] to NSSMWinServiceReply.sAccountName
+        End
         // Service startup type.
         Move ("get" * sServiceName * CS_NSSM_StartText) to sParams
         Get ExternalProgramResult of ghoExternalProgramResult CS_NSSM_Program sParams sPath (&sValueArray) to iRetval
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move sValueArray[0] to sTmp
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move sValueArray[0] to sTmp
+        End
         Get TranslateServiceStartupState sTmp to sTmp
         Move (CS_WSUQueryServiceStartup + sTab + sTmp)  to sTmp
         Move (sRetval + CR_LF + sTmp) to sRetval
@@ -806,7 +812,12 @@ Class cWindowsServiceFunctions is a cObject
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move (CS_WSUQueryServiceType + sTab + sValueArray[0]) to sTmp
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move (CS_WSUQueryServiceType + sTab + sValueArray[0]) to sTmp
+        End
+        Else Begin
+            Move (CS_WSUQueryServiceType + sTab) to sTmp
+        End
         Move (sRetval + CR_LF + sTmp) to sRetval
 
         // AppPriority.
@@ -815,7 +826,12 @@ Class cWindowsServiceFunctions is a cObject
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move (CS_NSSM_AppPriority + ":" + sTab + sValueArray[0]) to sTmp
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move (CS_NSSM_AppPriority + ":" + sTab + sValueArray[0]) to sTmp
+        End
+        Else Begin
+            Move (CS_NSSM_AppPriority + ":" + sTab) to sTmp
+        End
         Move (sRetval + CR_LF + sTmp + CR_LF) to sRetval
 
         // Path to the service executable.
@@ -824,7 +840,9 @@ Class cWindowsServiceFunctions is a cObject
         If (iRetval <> 0) Begin
             Move iRetval to iStatus
         End
-        Move sValueArray[0] to NSSMWinServiceReply.sProgramPath
+        If (SizeOfArray(sValueArray) <> 0) Begin
+            Move sValueArray[0] to NSSMWinServiceReply.sProgramPath
+        End
         Move (Replace(CS_NSSM_Program, NSSMWinServiceReply.sProgramPath, "")) to NSSMWinServiceReply.sProgramPath
 
         Function_Return NSSMWinServiceReply

@@ -634,4 +634,7 @@ End_Object
 // If you get this compile error:
 //   - Error 4295: C:\Projects\DF20\WindowsServices\AppSrc\WindowsServicesUtil.src (ln 635) Can't include resource ..\PROGRAMS\DOTOUCHEXEFILE.EXE
 //   You need to compile the DoTouchExeFile.src first.
+#IFDEF Is$Win64
+    "Nope, that will not work! This program needs to be compiled as 32-bit."
+#ENDIF
 Start_UI
