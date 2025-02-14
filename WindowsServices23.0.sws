@@ -13,3 +13,5 @@ Lib4=Libraries\vwin32fh\StudioLibrary\vWin32fh-Library-DF23.0.sws
 [Projects]
 Project0=WindowsServicesUtil.src
 Project1=DFServiceProgram1.src
+Project2=DoTouchExeFile.src
+Project3=VdfCmdUtil.src
