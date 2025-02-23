@@ -1,6 +1,6 @@
-//****************************************************************************
+﻿//****************************************************************************
 // $Module type: Include file.
-// $Module name: cWindowsServiceFunctions.inc
+// $Module name: cWindowsServiceFunctions.h.pkg
 // $Author     : Nils Svedmyr, RDC Tools International, <mailto:support@rdctools.com>
 //               Portions by Bernhard Ponemayr and Allan Kim Eriksen.
 // Web-site    : http://www.rdctools.com
@@ -19,7 +19,7 @@ Use seq_chnl.pkg
 Use Dfcursor.pkg
 Use vWin32fh.pkg
 Use cExternalProgramResult.pkg  
-Use WinServiceLanguageConstants.inc
+Use WinServiceLanguageConstants.h.pkg
 
 // ***** CONSTANTS & STRUCT DECLARATIONS *****
 //

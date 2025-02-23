@@ -1,4 +1,4 @@
-// WinService.sl
+﻿// WinService.sl
 // Windows Service Lookup List
 
 Use Windows.pkg
@@ -6,7 +6,7 @@ Use cRDCDbModalPanel.pkg
 Use cDbCJGridPromptList.pkg
 Use cRDCDbCJGridColumn.pkg
 Use cRDCButton.pkg
-Use WinServiceLanguageConstants.inc
+Use WinServiceLanguageConstants.h.pkg
 Use cWinServiceDataDictionary.dd
 
 Cd_Popup_Object WinService_sl is a cRDCDbModalPanel

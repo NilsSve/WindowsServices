@@ -56,7 +56,7 @@ Object oHtmlHelp is a cHtmlHelp
     Set pbAlwaysOnTop to False
 End_Object
 
-Use WinServiceLanguageConstants.inc
+Use WinServiceLanguageConstants.h.pkg
 Use cWindowsServiceFunctions.pkg
 Use GlobalDateTimeFunctions.pkg   
 Use YesNoBox_Adm.dg

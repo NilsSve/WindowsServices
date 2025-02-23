@@ -1,9 +1,9 @@
-Use Windows.pkg
+﻿Use Windows.pkg
 Use cCJGridPromptList.pkg
 Use cCJGridColumn.pkg
 Use cCJGridColumnRowIndicator.pkg
 Use cRDCModalPanel.pkg
-Use WinServiceLanguageConstants.inc
+Use WinServiceLanguageConstants.h.pkg
 
 Object oAccountNames_dg is a cRDCModalPanel
     Set Size to 128 191

@@ -57,8 +57,8 @@
 // $Rev History:
 //    2014-07-05  Module header created
 //****************************************************************************
-Use WinServiceLanguageConstants.inc
-Use cWindowsServiceFunctions.inc
+Use WinServiceLanguageConstants.h.pkg
+Use cWindowsServiceFunctions.h.pkg
 
 // ***** EXTERNAL FUNCTION DECLARATIONS: *****
 //

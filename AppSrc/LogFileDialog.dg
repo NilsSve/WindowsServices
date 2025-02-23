@@ -1,9 +1,9 @@
-Use Windows.pkg
+﻿Use Windows.pkg
 Use cTextEdit.pkg
 Use seq_chnl.pkg
 Use cRDCButtonDPI.pkg
 Use cRDCModalPanel.pkg
-Use WinServiceLanguageConstants.inc
+Use WinServiceLanguageConstants.h.pkg
 Use vWin32fh.pkg
 
 Object oLogFileDialog_dg is a cRDCModalPanel
