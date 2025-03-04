@@ -29,11 +29,10 @@
 // ..or you could change it back to "asInvoker", but you then always needs to start the program "As Administrator" by, right-clicking the .exe file.
 //
 Use DFAllEnt.pkg
-Use cCJStandardCommandBarSystem.pkg
-Use cRDCSkinComboBoxCJMenuItem.pkg
+Use cRDCCJCommandBarSystem.pkg
+//Use cRDCSkinComboBoxCJMenuItem.pkg
 
 Use cDigitalSoftwareCertificate.pkg
-Use cCJCommandBarSystem.pkg
 
 Object oDigitalSoftwareCertificate is a cDigitalSoftwareCertificate
     Move Self to ghoDigitalSoftwareCertificate
@@ -246,19 +245,8 @@ Object oApplication is a cApplication
 
 End_Object
 
-Use cCJSkinFramework.pkg
-Object oCJSkinFramework is a cCJSkinFramework
-    Set pbLoadPreference to True
-//    Set psSkinFile to "iTunesB.cjstyles"
-//    Set psSkinIni to "Square Buttons Light.ini"
-End_Object
-
-Use cToolTipController.pkg
-Object oToolTipController is a cToolTipController
-    Move Self to ghoToolTipController
-    Set piMaxWidth to 400
-    Set piDurationPopup to 14000    // 14 seconds, needed for long tooltips.
-    Set pbUsePrefix to True
+Use cRDCTooltipController.pkg
+Object oToolTipController is a cRDCTooltipController
 End_Object
 
 Use oEditContextMenu.pkg
@@ -272,49 +260,10 @@ Object oMain is a Panel
     Set piMinSize to 310 415
     Set Location to 1 1
     Set Maximize_Icon to False
+    Set Icon to "WindowsServices.ico"
 
-    Object oCommandBarSystem is a cCJCommandBarSystem
-        Set pbTimerUpdate to True
-        Set pbSyncFloatingToolbars to False
-        Set pbAutoResizeIcons to True
-
+    Object oCommandBarSystem is a cRDCCJCommandBarSystem
         Property Boolean pbVerboseCertificateState False
-        Property Integer piDesiredIconSize 32 // Default icon size
-
-        Set pbLargeIcons to True
-
-        Procedure OnCreateCommandBars
-            Handle hoOptions
-            Get OptionsObject to hoOptions
-            Forward Send OnCreateCommandBars
-        End_Procedure
-
-        Procedure OnCreateCommandBars
-            Handle hoOptions
-
-            Forward Send OnCreateCommandBars
-            Get OptionsObject to hoOptions
-            Send ComSetIconSize of hoOptions False (piDesiredIconSize(Self)) (piDesiredIconSize(Self))  // Set icon size for Toolbar buttons.
-            Send DoChangeToolTipFormat
-        End_Procedure
-
-        Procedure DoChangeToolTipFormat
-            Variant vToolTip
-            Handle  hoObject
-
-            Get ComToolTipContext to vTooltip
-            Get Create (RefClass(cCJToolTipContext)) to hoObject
-            Set pvComObject of hoObject to vTooltip
-
-            Set ComStyle            of hoObject to xtpToolTipOffice2007
-            Send ComShowTitleAndDescription of hoObject True xtpToolTipIconInfo
-            Set ComShowOfficeBorder of hoObject to True
-            Set ComShowShadow       of hoObject to True
-            // Set the max width for a tooltip. 250 just seems to be a good
-            // compromise. After 250 pixels the text will wrap to the next line automatically.
-            Set  ComMaxTipWidth      of hoObject to 250 // In pixels
-            Send Destroy of hoObject
-        End_Procedure
 
         Object oFind_ToolBar is a cCJToolbar
             Set psTitle to "Finding Toolbar"
@@ -651,6 +600,11 @@ Object oMain is a Panel
 
     End_Object
 
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+        Set Icon to "WindowsServices.ico"
+    End_Procedure
+    
 End_Object
 
 // If you get this compile error:
