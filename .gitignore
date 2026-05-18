@@ -27,8 +27,17 @@ loginEncryptionkey.inc
 **/Data/**/*.cch
 **/Data/**/*.cfg
 
-# Never track Data\Deploy (developer's local-only baseline; the DB ships as WinServiceData.zip).
+# Never track Data\Deploy (developer's local-only baseline copy).
 **/Data/Deploy/
+
+# Ship the empty baseline database as real files in Data\ so a fresh clone has
+# a working workspace. git tracks these once committed, so it WILL show local
+# edits to them. Run skip-local-data.cmd once after cloning to keep your
+# private Data\ database out of git. Volatile files above stay ignored.
+!**/Data/*.dat
+!**/Data/*.hdr
+!**/Data/*.k*
+!**/Data/Filelist.cfg
 
 # DDSrc
 **/DdSrc/**/*.def
