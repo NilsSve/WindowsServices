@@ -27,6 +27,11 @@ loginEncryptionkey.inc
 **/Data/**/*.cch
 **/Data/**/*.cfg
 
+# Data\Deploy: keep the baseline "deploy" DB in git so fresh clones have a
+# working database (the rules above still ignore the developer's live Data\ DB).
+!**/Data/Deploy/
+!**/Data/Deploy/**
+
 # DDSrc
 **/DdSrc/**/*.def
 
