@@ -67,3 +67,6 @@ loginEncryptionkey.inc
 
 **/Install
 **/Capture
+
+# Claude Code session/worktree scratch (local agent state - never commit)
+.claude/
