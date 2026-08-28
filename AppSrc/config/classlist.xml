@@ -13,11 +13,6 @@
 			<libraryTimeStamp>2025-01-07T15:02:23</libraryTimeStamp>
 			<libraryID>Lib4</libraryID>
 		</library>
-		<library>
-			<libraryPath>Libraries\DigitalCert\DigitalCert24.0.sws</libraryPath>
-			<libraryTimeStamp>2025-01-17T15:01:01</libraryTimeStamp>
-			<libraryID>Lib1</libraryID>
-		</library>
 	</libraries>
 	<classes>
 		<class>

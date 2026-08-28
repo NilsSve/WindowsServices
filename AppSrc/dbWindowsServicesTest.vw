@@ -18,7 +18,6 @@ Use cRDCBitmapContainer.pkg
 Use cRDCGroup.pkg
 Use cRDCTextbox.pkg
 Use cWindowsServiceFunctions.pkg
-Use cDigitalSoftwareCertificate.pkg
 Use vWin32fh.pkg
 
 Use AccountName.dg

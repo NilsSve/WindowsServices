@@ -12,7 +12,7 @@ The workspace also includes a template, **DFServiceProgram1**, to help you build
 
 ## Setup after cloning
 
-The libraries this workspace uses (DigitalCert, DFAbout, RDCToolsLib, vwin32fh) are **not** stored
+The libraries this workspace uses (DFAbout, RDCToolsLib, vwin32fh) are **not** stored
 in this repository (they are gitignored). Run **`setup.bat`** once from the repository root and it
 provides them, behaving differently by machine so one arrangement serves both maintainer and user:
 
