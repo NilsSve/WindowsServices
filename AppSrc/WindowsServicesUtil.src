@@ -166,7 +166,7 @@ Object oApplication is a cApplication
 
         // It doesn't work to include the filelist.cfg by the compiler when it is open in the Studio,
         // so use a copy of it.
-        IncludeBinaryResource ..\Data\Deploy\Filelist.cfg  as res_Install_FilelistCFGFile
+        IncludeBinaryResource ..\Data\FilelistBackupFile.cfg  as res_Install_FilelistCFGFile
         IncludeBinaryResource WinService.dat as res_Install_WinserviceDatFile
         IncludeBinaryResource WinService.hdr as res_Install_WinserviceHdrFile
         IncludeBinaryResource WinService.k1  as res_Install_WinserviceK1File
