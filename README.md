@@ -12,14 +12,15 @@ The workspace also includes a template, **DFServiceProgram1**, to help you build
 
 ## Setup after cloning
 
-The libraries this workspace uses (DFAbout, RDCToolsLib, vwin32fh) are **not** stored
+The libraries this workspace uses (DFAbout, RDCToolsLib, vwin32fh, and DFUnit for the unit tests) are
+**not** stored
 in this repository (they are gitignored). Run **`setup.bat`** once from the repository root and it
 provides them, behaving differently by machine so one arrangement serves both maintainer and user:
 
 - On a machine with the shared RDC library pool next door (a sibling `..\Libraries` carrying the
   marker file `.rdc-library-pool`), it makes `Libraries\` a **junction** to that pool — one shared,
   editable copy of every library.
-- Otherwise it **clones** the four libraries into this workspace's own `Libraries\` folder:
+- Otherwise it **clones** the libraries into this workspace's own `Libraries\` folder:
   isolated, self-contained, and it never writes anywhere outside this workspace.
 
 It also runs `skip-local-data.cmd` so your local `Data\` database changes stay on your machine and
@@ -28,3 +29,15 @@ are never tracked or pushed. Either way `Libraries\` is local-only and never com
 not run `git clean -x` here.)
 
 The database tables ship directly in `Data\`, so the workspace runs out of the box after setup (`WinServiceData.zip` is just a spare copy of the same baseline).
+
+## Unit tests
+
+`AppSrc\UnitTests.src` is the unit-test program of the workspace, built on
+[DFUnit](https://github.com/NilsSve/Library-DFUnit) (`Libraries\DFUnit`, which `setup.bat` provides). The
+tests are in `AppSrc\o<Subject>-Tests.pkg`, one file per subject, and `AppSrc\oUnit_Tests.pkg` lists them. The
+first file covers the parts of `cWindowsServiceFunctions` that touch no Windows service: `ProperCase`, the
+startup types `nssm.exe` reports put in words, and `ApplicationPath`.
+
+Like the programs, the test program is 32-bit. It needs `Programs\nssm.exe` to compile, as
+`WindowsServicesUtil.src` does. Compile `UnitTests.src` in the Studio and run it, or run
+`Programs\UnitTests.exe -c` to get the results on the console (exit code 0 when all passed).

@@ -1,0 +1,43 @@
+// oWindowsServiceFunctions-Tests.pkg - the parts of cWindowsServiceFunctions that touch no Windows service:
+// ProperCase, the startup type NSSM reports put in words, and ApplicationPath.
+//
+// Nothing here creates, starts or queries a service, and nothing writes nssm.exe beside the program
+// (CheckServiceParameters would). The package embeds Programs\nssm.exe when it compiles, so the file must be
+// there to build this program, as for WindowsServicesUtil.src.
+
+Use DFUnit\Fixturing\Fixture.pkg
+Use cWindowsServiceFunctions.pkg
+
+Object oWindowsServiceFunctions_Tests is a cTestFixture
+    Set psTestFixtureName to "cWindowsServiceFunctions - ProperCase, startup types, ApplicationPath"
+
+    // A capital after a space or a hyphen, small letters everywhere else.
+    { Published=True }
+    Procedure Test_ProperCase
+        Send AssertSAreEqual "Hello World"     (ProperCase(ghoWindowsServiceFunctions, "hello world"))     "Two words."
+        Send AssertSAreEqual "Jean-Luc Picard" (ProperCase(ghoWindowsServiceFunctions, "JEAN-LUC PICARD")) "Capitals, and a hyphen."
+        Send AssertSAreEqual "Nt Authority"    (ProperCase(ghoWindowsServiceFunctions, "nT aUTHORITY"))    "Mixed case."
+        Send AssertSAreEqual ""                (ProperCase(ghoWindowsServiceFunctions, ""))                "Nothing."
+    End_Procedure
+
+    // The four startup types nssm.exe reports, and anything else.
+    { Published=True }
+    Procedure Test_TranslateServiceStartupState
+        Send AssertSAreEqual CS_WSUStartupStateInfo1 (TranslateServiceStartupState(ghoWindowsServiceFunctions, CS_NSSM_ServiceAuto_Start))    "Automatic."
+        Send AssertSAreEqual CS_WSUStartupStateInfo2 (TranslateServiceStartupState(ghoWindowsServiceFunctions, CS_NSSM_ServiceDelayed_Start)) "Delayed."
+        Send AssertSAreEqual CS_WSUStartupStateInfo3 (TranslateServiceStartupState(ghoWindowsServiceFunctions, CS_NSSM_ServiceDemand_Start))  "Manual."
+        Send AssertSAreEqual CS_WSUStartupStateInfo4 (TranslateServiceStartupState(ghoWindowsServiceFunctions, CS_NSSM_ServiceDisabled))      "Disabled."
+        Send AssertSAreEqual ""                      (TranslateServiceStartupState(ghoWindowsServiceFunctions, "SERVICE_SOMETHING_ELSE"))     "Not a startup type."
+    End_Procedure
+
+    // The folder of the running program, without the trailing backslash - where nssm.exe is put.
+    { Published=True }
+    Procedure Test_ApplicationPath_Is_The_Folder_Of_This_Program
+        String sFileName sFolder
+
+        Get GetApplicationFileName of ghoApplication to sFileName
+        Move (Left(sFileName, (RightPos("\", sFileName) - 1))) to sFolder
+        Send AssertSAreEqual (Lowercase(sFolder)) (Lowercase(ApplicationPath(ghoWindowsServiceFunctions))) "The program's folder."
+    End_Procedure
+
+End_Object
